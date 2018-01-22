@@ -3,6 +3,7 @@
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
 #include <string>
+#include "ModelLoader.h"
 
 //collect comments for the linker to include libraries here
 #pragma comment (lib, "d3d11.lib")
@@ -26,7 +27,7 @@ ID3D11DeviceContext* pDevCon;
 ID3D11RenderTargetView* pRTV;
 ID3D11DepthStencilView* pDSV;
 ID3D11Texture2D* pDSBuffer;
-
+ModelLoader *pModelLoader;
 //erase this later
 //---
 float red = 0.0f;
@@ -287,6 +288,12 @@ void releaseObjects()
 bool initScene()
 {
 	//here we have to create objects, load in shaders, set viewport, load models, textures, sounds, etc.
+	if (pModelLoader)
+		pModelLoader = new ModelLoader();
+	//load in Cube.obj
+	if (!pModelLoader->load("Assets//Cube.obj"))
+		return false;
+
 	return true;
 }
 
