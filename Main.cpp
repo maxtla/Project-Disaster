@@ -9,6 +9,7 @@
 #pragma comment (lib, "d3d11.lib")
 #pragma comment (lib, "d3dcompiler.lib")
 
+
 //collect namespace:s here
 using namespace DirectX;
 using namespace std;
@@ -288,10 +289,10 @@ void releaseObjects()
 bool initScene()
 {
 	//here we have to create objects, load in shaders, set viewport, load models, textures, sounds, etc.
-	if (pModelLoader)
+	if (pModelLoader == nullptr)
 		pModelLoader = new ModelLoader();
 	//load in Cube.obj
-	if (!pModelLoader->load("Assets//Cube.obj"))
+	if (!pModelLoader->load(pDev, "Assets//Cube.obj"))
 		return false;
 
 	return true;
@@ -315,10 +316,12 @@ void updateScene()
 
 void renderScene()
 {
-	//clear out backbuffer to the updated colors
+	//clear out backbuffer and refresh the depth/stencul view
 	float color[4] = { red, green, blue, 1.0f };
 	pDevCon->ClearRenderTargetView(pRTV, color);
 	pDevCon->ClearDepthStencilView(pDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	//handle drawing for models
+
 	//present the backbuffer to the screen
 	pSwapChain->Present(0, 0);
 }

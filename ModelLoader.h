@@ -10,13 +10,13 @@ using namespace std;
 class ModelLoader
 {
 private:
-	vector<Model*> _models;
+	vector<Model> _models;
 public:
 	ModelLoader();
 	~ModelLoader();
-	bool load(char* name, char* texture);
+	bool load(ID3D11Device* pDev, char* file_path);
 	int size() const;
-	Model* getModel(int index);
+	Model getModel(int index);
 };
 #endif // !_MODELLOADER_H
 

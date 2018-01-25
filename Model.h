@@ -2,8 +2,11 @@
 #ifndef _MODEL_H
 #define _MODEL_H
 #include <vector>
+#include <d3d11.h>
+#include "WICTextureLoader.h"
 
 using namespace std;
+using namespace DirectX;
 
 struct Vertex
 {
@@ -37,14 +40,26 @@ struct Normal
 	}
 };
 
+struct Material
+{
+	float ambient[3] = { 0 };
+	float diffuse[3] = { 0 };
+	float specular[3] = { 0 };
+	float specular_exponent;
+	float d_factor; //transparency factor 1.0 means fully opaque, Tr = 1 - d_factor;
+
+};
+
 class Model
 {
 private:
-
+	ID3D11ShaderResourceView* _modelTextureView;
+	ID3D11Resource* _modelResource;
+	ID3D11SamplerState* _modelSamplerState;
 public:
 	Model();
 	~Model();
-	bool loadTexture(char* texture);
+	bool loadTexture(ID3D11Device* pDev, string texture);
 	//containers
 	vector<unsigned int> vtxIndices;
 	vector<unsigned int> uvIndices;
@@ -52,6 +67,11 @@ public:
 	vector<Vertex> vertices;
 	vector<TexCoord> texCoords;
 	vector<Normal> normals;
+	Material material;
+	int NO_NORMALS;
+	ID3D11ShaderResourceView* getTexture();
+	ID3D11Resource* getResource();
+	ID3D11SamplerState* getSampler();
 
 };
 #endif // !_MODEL_H

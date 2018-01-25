@@ -87,7 +87,7 @@ bool DeferredShader::initializeShader(ID3D11Device * pDev, HWND hwnd, WCHAR * ve
 		"ps_5_0",
 		D3D10_SHADER_ENABLE_STRICTNESS,
 		0,
-		&pixelShaderBuffer,
+		&pixelShaderBuffer, 
 		&errorMsg);
 
 	if (FAILED(hr))
@@ -220,7 +220,7 @@ void DeferredShader::outputErrorMessage(ID3D10Blob * blob, HWND hwnd, WCHAR * fi
 	//pointer to the error message text buffer
 	compileError = (char*)(blob->GetBufferPointer());
 	//get message size
-	bufferSize = blob->GetBufferSize();
+	bufferSize = (unsigned int)blob->GetBufferSize();
 	//open an error text file and write to it
 	fOut.open("shader_error.txt");
 	for (unsigned int i = 0; i < bufferSize; i++)
