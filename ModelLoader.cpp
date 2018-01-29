@@ -76,17 +76,17 @@ bool ModelLoader::load(ID3D11Device* pDev, char* file_path)
 					return false; //something was missed 
 				else
 				{
-					_tModel.vtxIndices.push_back(v1 - 1);
-					_tModel.vtxIndices.push_back(v2 - 1);
-					_tModel.vtxIndices.push_back(v3 - 1);
+					_tModel.vtxIndices.push_back(v1);
+					_tModel.vtxIndices.push_back(v2);
+					_tModel.vtxIndices.push_back(v3);
 
-					_tModel.uvIndices.push_back(vt1 - 1);
-					_tModel.uvIndices.push_back(vt2 - 1);
-					_tModel.uvIndices.push_back(vt3 - 1);
+					_tModel.uvIndices.push_back(vt1);
+					_tModel.uvIndices.push_back(vt2);
+					_tModel.uvIndices.push_back(vt3);
 
-					_tModel.normalIndices.push_back(vn1 - 1);
-					_tModel.normalIndices.push_back(vn2 - 1);
-					_tModel.normalIndices.push_back(vn3 - 1);
+					_tModel.normalIndices.push_back(vn1);
+					_tModel.normalIndices.push_back(vn2);
+					_tModel.normalIndices.push_back(vn3);
 				}
 			}
 			if (vCount != 0 && vtCount != 0 && vnCount == 0)
@@ -97,13 +97,13 @@ bool ModelLoader::load(ID3D11Device* pDev, char* file_path)
 					return false; //something was missed
 				else
 				{
-					_tModel.vtxIndices.push_back(v1 - 1);
-					_tModel.vtxIndices.push_back(v2 - 1);
-					_tModel.vtxIndices.push_back(v3 - 1);
+					_tModel.vtxIndices.push_back(v1);
+					_tModel.vtxIndices.push_back(v2);
+					_tModel.vtxIndices.push_back(v3);
 
-					_tModel.uvIndices.push_back(vt1 - 1);
-					_tModel.uvIndices.push_back(vt2 - 1);
-					_tModel.uvIndices.push_back(vt3 - 1);
+					_tModel.uvIndices.push_back(vt1);
+					_tModel.uvIndices.push_back(vt2);
+					_tModel.uvIndices.push_back(vt3);
 				}
 			}
 			if (vCount != 0 && vtCount == 0 && vnCount != 0)
@@ -114,13 +114,13 @@ bool ModelLoader::load(ID3D11Device* pDev, char* file_path)
 					return false; //something was missed
 				else
 				{
-					_tModel.vtxIndices.push_back(v1 - 1);
-					_tModel.vtxIndices.push_back(v2 - 1);
-					_tModel.vtxIndices.push_back(v3 - 1);
+					_tModel.vtxIndices.push_back(v1);
+					_tModel.vtxIndices.push_back(v2);
+					_tModel.vtxIndices.push_back(v3);
 
-					_tModel.normalIndices.push_back(vn1 - 1);
-					_tModel.normalIndices.push_back(vn2 - 1);
-					_tModel.normalIndices.push_back(vn3 - 1);
+					_tModel.normalIndices.push_back(vn1);
+					_tModel.normalIndices.push_back(vn2);
+					_tModel.normalIndices.push_back(vn3);
 				}
 			}
 			if (vCount != 0 && vtCount == 0 && vnCount == 0)
@@ -131,9 +131,9 @@ bool ModelLoader::load(ID3D11Device* pDev, char* file_path)
 					return false; //something was missed
 				else
 				{
-					_tModel.vtxIndices.push_back(v1 - 1);
-					_tModel.vtxIndices.push_back(v2 - 1);
-					_tModel.vtxIndices.push_back(v3 - 1);
+					_tModel.vtxIndices.push_back(v1);
+					_tModel.vtxIndices.push_back(v2);
+					_tModel.vtxIndices.push_back(v3);
 				}
 			}
 		}
@@ -187,8 +187,6 @@ bool ModelLoader::load(ID3D11Device* pDev, char* file_path)
 	//load in texture for this model
 	if (!_tModel.loadTexture(pDev, texture_path))
 		return false;
-	//initialize the vertex buffer
-	_tModel.initializeBuffer(pDev);
 	//add the model to our model vector
 	this->_models.push_back(_tModel);
 
@@ -203,12 +201,4 @@ int ModelLoader::size() const
 Model ModelLoader::getModel(int index)
 {
 	return this->_models[index];
-}
-
-void ModelLoader::Release()
-{
-	for (int i = 0; i < _models.size(); i++)
-	{
-		this->_models[i].Release();
-	}
 }

@@ -31,13 +31,13 @@ private:
 	void ReleaseShader();
 	void outputErrorMessage(ID3D10Blob* blob, HWND hwnd, WCHAR* file);
 	bool setShaderParameters(ID3D11DeviceContext* pDevCon, XMMATRIX world, XMMATRIX view, XMMATRIX projection, ID3D11ShaderResourceView* pSRV);
-	void renderShader(ID3D11DeviceContext* pDevCon, int iCount, ID3D11SamplerState* texSampler);
+	void renderShader(ID3D11DeviceContext* pDevCon, int iCount);
 public:
 	DeferredShader();
 	~DeferredShader();
 	bool initialize(ID3D11Device* pDev, HWND hwnd);
 	void Release();
-	bool render(ID3D11DeviceContext* pDevCon, int index, XMMATRIX world, XMMATRIX view, XMMATRIX projection, ID3D11ShaderResourceView* pSRV, ID3D11SamplerState* texSampler);
+	bool render(ID3D11DeviceContext* pDevCon, int index, XMMATRIX world, XMMATRIX view, XMMATRIX projection, ID3D11ShaderResourceView* pSRV);
 };
 
 #endif // !_DEFERREDSHADER_H

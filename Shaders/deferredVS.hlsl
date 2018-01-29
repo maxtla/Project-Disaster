@@ -19,7 +19,7 @@ struct VS_OUT
     float4 pos : SV_POSITION;
     float2 tex : TEXCOORD0;
     float3 normal : NORMAL;
-};
+}
 
 //shader code
 VS_OUT deferred_vs_main(VS_IN input)

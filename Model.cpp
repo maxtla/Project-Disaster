@@ -2,47 +2,26 @@
 
 
 
-bool Model::initializeBuffer(ID3D11Device * pDev)
-{
-	VerticesUVsNormals * vertices = nullptr;
-	vertices = this->getData();
-	D3D11_BUFFER_DESC vertexBufferDesc;
-	D3D11_SUBRESOURCE_DATA vertexData;
-	HRESULT hr;
-	if (vertices == nullptr)
-		return false;
-
-	// Set up the description of the static vertex buffer.
-	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	vertexBufferDesc.ByteWidth = (unsigned int)(sizeof(VerticesUVsNormals) * this->vtxIndices.size());
-	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vertexBufferDesc.CPUAccessFlags = 0;
-	vertexBufferDesc.MiscFlags = 0;
-	vertexBufferDesc.StructureByteStride = 0;
-
-	// Give the subresource structure a pointer to the vertex data.
-	vertexData.pSysMem = vertices;
-	vertexData.SysMemPitch = 0;
-	vertexData.SysMemSlicePitch = 0;
-
-	//create the vertex buffer
-	hr = pDev->CreateBuffer(&vertexBufferDesc, &vertexData, &this->pVertexBuffer);
-	if (FAILED(hr))
-		return false;
-
-	return true;
-}
-
 Model::Model()
 {
 	NO_NORMALS = 0;
-	this->_pVerticesUvNormArr = nullptr;
 }
 
 
 Model::~Model()
 {
-	
+	vtxIndices.clear();
+	uvIndices.clear();
+	normalIndices.clear();
+	vertices.clear();
+	texCoords.clear();
+	normals.clear();
+	this->_modelResource->Release();
+	this->_modelResource = nullptr;
+	this->_modelTextureView->Release();
+	this->_modelTextureView = nullptr;
+	this->_modelSamplerState->Release();
+	this->_modelSamplerState = nullptr;
 }
 
 bool Model::loadTexture(ID3D11Device * pDev, string texture)
@@ -87,66 +66,4 @@ ID3D11Resource * Model::getResource()
 ID3D11SamplerState * Model::getSampler()
 {
 	return this->_modelSamplerState;
-}
-
-VerticesUVsNormals * Model::getData()
-{
-	float x, y, z, u, v, a, b, c;
-	if (this->_pVerticesUvNormArr == nullptr)
-	{
-		//create the array and put in data in the correct order
-		this->_pVerticesUvNormArr = new VerticesUVsNormals[this->vtxIndices.size()];
-		for (size_t i = 0; i < this->vtxIndices.size(); i++)
-		{
-			x = this->vertices[this->vtxIndices[i]].x;
-			y = this->vertices[this->vtxIndices[i]].y;
-			z = this->vertices[this->vtxIndices[i]].z;
-
-			u = this->texCoords[this->uvIndices[i]].u;
-			v = this->texCoords[this->uvIndices[i]].v;
-
-			a = this->normals[this->normalIndices[i]].x;
-			b = this->normals[this->normalIndices[i]].y;
-			c = this->normals[this->normalIndices[i]].z;
-
-			this->_pVerticesUvNormArr[i] = VerticesUVsNormals(x, y, z, u, v, a, b, c);
-		}
-	}
-
-	return this->_pVerticesUvNormArr;
-}
-
-int Model::getVertexCount()
-{
-	return (int)this->vtxIndices.size();
-}
-
-void Model::Render(ID3D11DeviceContext * pDevCon)
-{
-	unsigned int stride = sizeof(VerticesUVsNormals);
-	unsigned int offset = 0;
-
-	pDevCon->IASetVertexBuffers(0, 1, &this->pVertexBuffer, &stride, &offset);
-	pDevCon->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	return;
-}
-
-void Model::Release()
-{
-	vtxIndices.clear();
-	uvIndices.clear();
-	normalIndices.clear();
-	vertices.clear();
-	texCoords.clear();
-	normals.clear();
-	this->_modelResource->Release();
-	this->_modelResource = nullptr;
-	this->_modelTextureView->Release();
-	this->_modelTextureView = nullptr;
-	this->_modelSamplerState->Release();
-	this->_modelSamplerState = nullptr;
-	this->pVertexBuffer->Release();
-	this->pVertexBuffer = nullptr;
-	if (this->_pVerticesUvNormArr)
-		delete[] this->_pVerticesUvNormArr;
 }
