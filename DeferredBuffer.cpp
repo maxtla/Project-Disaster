@@ -187,3 +187,8 @@ ID3D11ShaderResourceView * DeferredBuffer::getShaderResourceView(int view)
 {
 	return this->_SRVArr[view];
 }
+
+D3D11_VIEWPORT* DeferredBuffer::getViewPort()
+{
+	return &this->_viewport;
+}

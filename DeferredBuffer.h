@@ -19,6 +19,7 @@ public:
 	void clearRenderTargets(ID3D11DeviceContext* pDevCon, float r, float g, float b, float a);
 
 	ID3D11ShaderResourceView* getShaderResourceView(int view);
+	D3D11_VIEWPORT* getViewPort();
 
 private:
 	int _texWidth, _texHeight;

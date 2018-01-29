@@ -4,6 +4,9 @@
 #include <DirectXMath.h>
 #include <string>
 #include "ModelLoader.h"
+#include "DeferredShader.h"
+#include "DeferredBuffer.h"
+#include "LightShader.h"
 
 //collect comments for the linker to include libraries here
 #pragma comment (lib, "d3d11.lib")
@@ -28,7 +31,25 @@ ID3D11DeviceContext* pDevCon;
 ID3D11RenderTargetView* pRTV;
 ID3D11DepthStencilView* pDSV;
 ID3D11Texture2D* pDSBuffer;
+D3D11_VIEWPORT _viewPort;
+ID3D11DepthStencilState* pDepthStencilState;
+ID3D11DepthStencilState* pDepthDisabledStencilState;
+ID3D11RasterizerState* pRasterState;
+ID3D11RasterizerState* pRasterStateNoCulling;
+//own classes
 ModelLoader *pModelLoader;
+DeferredBuffer* pDeferredBuffer;
+DeferredShader* pDeferredShader;
+LightShader* pLightShader;
+
+//shoudl maybe create a light object class for this
+XMVECTOR lightDir = XMVectorSet(0.f, 0.f, 1.f, 0.f);
+//maybe create a camera klass for this?
+XMMATRIX view = XMMatrixLookAtLH(XMVectorSet(0.0f, 0.0f, -3.f, 1.0f), XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
+XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PI * 0.45f, ((float)WIDTH) / HEIGHT, 0.1f, 20.0f);
+XMMATRIX world = XMMatrixIdentity();
+//2D projection matrix
+XMMATRIX _2D_projection = XMMatrixOrthographicLH((float)WIDTH, (float)HEIGHT, 0.1f, 1000.0f);
 //erase this later
 //---
 float red = 0.0f;
@@ -37,6 +58,7 @@ float blue = 0.0f;
 int colormodr = 1;
 int colormodg = 1;
 int colormodb = 1;
+float rotationValue = 0;
 //---
 
 //collect function prototypes here
@@ -221,7 +243,7 @@ bool initD3D11App(HINSTANCE hInstance)
 	ZeroMemory(&swapChainDesc, sizeof(DXGI_SWAP_CHAIN_DESC));
 
 	swapChainDesc.BufferDesc = bufferDesc;
-	swapChainDesc.SampleDesc.Count = 1;
+	swapChainDesc.SampleDesc.Count = 4;
 	swapChainDesc.SampleDesc.Quality = 0;
 	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	swapChainDesc.BufferCount = 1;
@@ -260,7 +282,7 @@ bool initD3D11App(HINSTANCE hInstance)
 	dpDesc.MipLevels = 1;
 	dpDesc.ArraySize = 1;
 	dpDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	dpDesc.SampleDesc.Count = 1;
+	dpDesc.SampleDesc.Count = 4;
 	dpDesc.SampleDesc.Quality = 0;
 	dpDesc.Usage = D3D11_USAGE_DEFAULT;
 	dpDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
@@ -269,10 +291,119 @@ bool initD3D11App(HINSTANCE hInstance)
 
 	//create depth stecil view
 	pDev->CreateTexture2D(&dpDesc, NULL, &pDSBuffer);
-	pDev->CreateDepthStencilView(pDSBuffer, NULL, &pDSV);
 
+
+	//set up depth stencil desc
+	D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
+	ZeroMemory(&depthStencilDesc, sizeof(D3D11_DEPTH_STENCIL_DESC));
+	// Set up the description of the stencil state.
+	depthStencilDesc.DepthEnable = true;
+	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
+
+	depthStencilDesc.StencilEnable = true;
+	depthStencilDesc.StencilReadMask = 0xFF;
+	depthStencilDesc.StencilWriteMask = 0xFF;
+
+	// Stencil operations if pixel is front-facing.
+	depthStencilDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	depthStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
+	depthStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	depthStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+	// Stencil operations if pixel is back-facing.
+	depthStencilDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	depthStencilDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
+	depthStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	depthStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+	//create the normal depth stencil state
+	hr = pDev->CreateDepthStencilState(&depthStencilDesc, &pDepthStencilState);
+	if (FAILED(hr))
+		return false;
+	//Set the depth stencil state
+	pDevCon->OMSetDepthStencilState(pDepthStencilState, 1);
+	//initialize depth stencil view
+	D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc;
+	ZeroMemory(&depthStencilViewDesc, sizeof(D3D11_DEPTH_STENCIL_VIEW_DESC));
+	//prepare the depth stencil view desc
+	depthStencilViewDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
+	depthStencilViewDesc.Texture2D.MipSlice = 0;
+	//create depth stencil view
+	pDev->CreateDepthStencilView(pDSBuffer, &depthStencilViewDesc, &pDSV);
 	//set render target and bind depth-stencil view object
-	pDevCon->OMSetRenderTargets(1, &pRTV, pDSV); //we might need to add a depth stencil view later
+	pDevCon->OMSetRenderTargets(1, &pRTV, pDSV); 
+	//create and set the raster description and raster state
+	D3D11_RASTERIZER_DESC rasterDesc;
+	ZeroMemory(&rasterDesc, sizeof(D3D11_RASTERIZER_DESC));
+	// Setup the raster description which will determine how and what polygons will be drawn.
+	rasterDesc.AntialiasedLineEnable = true;
+	rasterDesc.CullMode = D3D11_CULL_BACK;
+	rasterDesc.DepthBias = 0;
+	rasterDesc.DepthBiasClamp = 0.0f;
+	rasterDesc.DepthClipEnable = true;
+	rasterDesc.FillMode = D3D11_FILL_SOLID;
+	rasterDesc.FrontCounterClockwise = false;
+	rasterDesc.MultisampleEnable = false;
+	rasterDesc.ScissorEnable = false;
+	rasterDesc.SlopeScaledDepthBias = 0.0f;
+	//create rasterizer state
+	hr = pDev->CreateRasterizerState(&rasterDesc, &pRasterState);
+	if (FAILED(hr))
+		return false;
+	//set rasterizer state
+	pDevCon->RSSetState(pRasterState);
+	// Setup a raster description which turns off back face culling.
+	rasterDesc.AntialiasedLineEnable = false;
+	rasterDesc.CullMode = D3D11_CULL_NONE;
+	rasterDesc.DepthBias = 0;
+	rasterDesc.DepthBiasClamp = 0.0f;
+	rasterDesc.DepthClipEnable = true;
+	rasterDesc.FillMode = D3D11_FILL_SOLID;
+	rasterDesc.FrontCounterClockwise = false;
+	rasterDesc.MultisampleEnable = false;
+	rasterDesc.ScissorEnable = false;
+	rasterDesc.SlopeScaledDepthBias = 0.0f;
+	//create no culling rasterizer state
+	hr = pDev->CreateRasterizerState(&rasterDesc, &pRasterStateNoCulling);
+	if (FAILED(hr))
+		return false;
+
+	// Setup the viewport for rendering.
+	_viewPort.Width = (float)WIDTH;
+	_viewPort.Height = (float)HEIGHT;
+	_viewPort.MinDepth = 0.0f;
+	_viewPort.MaxDepth = 1.0f;
+	_viewPort.TopLeftX = 0.0f;
+	_viewPort.TopLeftY = 0.0f;
+
+	// Create the viewport.
+	pDevCon->RSSetViewports(1, &_viewPort);
+
+	//create the second depth stencil state for 2D rendering (Z buffer disabled)
+	D3D11_DEPTH_STENCIL_DESC depthDisabledStencilDesc;
+	ZeroMemory(&depthDisabledStencilDesc, sizeof(D3D11_DEPTH_STENCIL_DESC));
+	// Now create a second depth stencil state which turns off the Z buffer for 2D rendering.  The only difference is 
+	// that DepthEnable is set to false, all other parameters are the same as the other depth stencil state.
+	depthDisabledStencilDesc.DepthEnable = false;
+	depthDisabledStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	depthDisabledStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
+	depthDisabledStencilDesc.StencilEnable = true;
+	depthDisabledStencilDesc.StencilReadMask = 0xFF;
+	depthDisabledStencilDesc.StencilWriteMask = 0xFF;
+	depthDisabledStencilDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	depthDisabledStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
+	depthDisabledStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	depthDisabledStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+	depthDisabledStencilDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	depthDisabledStencilDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
+	depthDisabledStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+	depthDisabledStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+	hr = pDev->CreateDepthStencilState(&depthDisabledStencilDesc, &pDepthDisabledStencilState);
+	if (FAILED(hr))
+		return false;
 
 	return true;
 }
@@ -284,6 +415,14 @@ void releaseObjects()
 	pDevCon->Release();
 	pDSV->Release();
 	pDSBuffer->Release();
+	pDeferredBuffer->Release();
+	pDeferredShader->Release();
+	pDepthStencilState->Release();
+	pDepthDisabledStencilState->Release();
+	pRasterState->Release();
+	pRasterStateNoCulling->Release();
+	pModelLoader->Release();
+	pLightShader->Release();
 }
 
 bool initScene()
@@ -294,6 +433,25 @@ bool initScene()
 	//load in Cube.obj
 	if (!pModelLoader->load(pDev, "Assets//Cube.obj"))
 		return false;
+	//init deferred buffer
+	if (pDeferredBuffer == nullptr)
+		pDeferredBuffer = new DeferredBuffer();
+
+	if (!pDeferredBuffer->initialize(pDev, WIDTH, HEIGHT, 1, 0))
+		return false;
+	//init deferred shader
+	if (pDeferredShader == nullptr)
+		pDeferredShader = new DeferredShader();
+
+	if (!pDeferredShader->initialize(pDev, hwnd))
+		return false;
+	//init light shader
+	if (pLightShader == nullptr)
+		pLightShader = new LightShader();
+	
+	if (!pLightShader->initialize(pDev, hwnd))
+		return false;
+
 
 	return true;
 }
@@ -312,16 +470,40 @@ void updateScene()
 		colormodg *= -1;
 	if (blue >= 1.0f || blue <= 0.0f)
 		colormodb *= -1;
+
+	world =  XMMatrixMultiply( XMMatrixRotationY(rotationValue), XMMatrixRotationX(rotationValue - 0.00002f));
+	//world = XMMatrixRotationY(rotationValue);
+	rotationValue += 0.00005f;
 }
 
 void renderScene()
 {
-	//clear out backbuffer and refresh the depth/stencul view
-	float color[4] = { red, green, blue, 1.0f };
+	//first we must render the scene using the deferred shader
+	//pDeferredBuffer->setRenderTargets(pDevCon);
+	//pDeferredBuffer->clearRenderTargets(pDevCon, 0.0f, 0.0f, 0.0f, 1.0f);
+	//pDevCon->OMSetRenderTargets(1, &pRTV, pDSV);
+	float color[4] = { 0.f, 0.f, 0.f, 1.0f };
 	pDevCon->ClearRenderTargetView(pRTV, color);
-	pDevCon->ClearDepthStencilView(pDSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-	//handle drawing for models
+	pDevCon->ClearDepthStencilView(pDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
+	for (int i = 0; i < pModelLoader->size(); i++)
+	{
+		pModelLoader->getModel(i).Render(pDevCon);
+		pDeferredShader->render(pDevCon, pModelLoader->getModel(i).getVertexCount(), world, view, projection, pModelLoader->getModel(i).getTexture(), pModelLoader->getModel(i).getSampler());
+	}
+	//reset the render target back to the original backbuffer
+	////reset the viewport
+	//pDevCon->RSSetViewports(1, &_viewPort);
+	////clear scene for 2D rendering
+	////setup scene for 2D rendering
+	//pDevCon->OMSetDepthStencilState(pDepthDisabledStencilState, 1);
 
-	//present the backbuffer to the screen
+	//for (int i = 0; i < pModelLoader->size(); i++)
+	//{
+	//	pLightShader->Render(pDevCon, pModelLoader->getModel(i).getVertexCount(), world, view, _2D_projection,
+	//		pDeferredBuffer->getShaderResourceView(0), pDeferredBuffer->getShaderResourceView(1), lightDir);
+	//}
+
+	//pDevCon->OMSetDepthStencilState(pDepthStencilState, 1);
+
 	pSwapChain->Present(0, 0);
 }
