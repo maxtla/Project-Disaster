@@ -21,7 +21,7 @@ bool DeferredShader::initialize(ID3D11Device * pDev, HWND hwnd)
 {
 	bool result;
 	//load in the vertex and pixel shader files
-	result = this->initializeShader(pDev, hwnd, L"/Shaders/deferredVS.hlsl", L"/Shaders/deferredPS.hlsl");
+	result = this->initializeShader(pDev, hwnd, L"Shaders//deferredVS.hlsl", L"Shaders//deferredPS.hlsl");
 	if (!result)
 		return false;
 
@@ -34,7 +34,7 @@ void DeferredShader::Release()
 	return;
 }
 
-bool DeferredShader::render(ID3D11DeviceContext * pDevCon, int index, XMMATRIX world, XMMATRIX view, XMMATRIX projection, ID3D11ShaderResourceView * pSRV)
+bool DeferredShader::render(ID3D11DeviceContext * pDevCon, int index, XMMATRIX world, XMMATRIX view, XMMATRIX projection, ID3D11ShaderResourceView * pSRV, ID3D11SamplerState* texSampler)
 {
 	bool result;
 	//set parameters used for rendering
@@ -43,7 +43,7 @@ bool DeferredShader::render(ID3D11DeviceContext * pDevCon, int index, XMMATRIX w
 		return false;
 
 	//render the prepared buffers
-	this->renderShader(pDevCon, index);
+	this->renderShader(pDevCon, index, texSampler);
 	return true;
 }
 
@@ -272,7 +272,7 @@ bool DeferredShader::setShaderParameters(ID3D11DeviceContext * pDevCon, XMMATRIX
 	return true;
 }
 
-void DeferredShader::renderShader(ID3D11DeviceContext * pDevCon, int iCount)
+void DeferredShader::renderShader(ID3D11DeviceContext * pDevCon, int iCount, ID3D11SamplerState* texSampler)
 {
 	//set vertex input layout
 	pDevCon->IASetInputLayout(this->_pInputLayout);
@@ -280,10 +280,9 @@ void DeferredShader::renderShader(ID3D11DeviceContext * pDevCon, int iCount)
 	pDevCon->VSSetShader(this->_pVertexShader, NULL, 0);
 	pDevCon->PSSetShader(this->_pPixelShader, NULL, 0);
 	//set sampler states 
-	pDevCon->PSSetSamplers(0, 1, &this->_pSamplerState);
-	
+	pDevCon->PSSetSamplers(0, 1, &texSampler);
 	//render the geometry
-	pDevCon->DrawIndexed(iCount, 0, 0);
-
+	pDevCon->Draw(iCount, 0);
+	
 	return;
 }

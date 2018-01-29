@@ -17,6 +17,7 @@ public:
 	bool load(ID3D11Device* pDev, char* file_path);
 	int size() const;
 	Model getModel(int index);
+	void Release();
 };
 #endif // !_MODELLOADER_H
 
