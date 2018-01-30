@@ -15,6 +15,7 @@ struct PS_OUT
 {
     float4 color : SV_Target0;
     float4 normal : SV_Target1;
+    float4 position : SV_target2;
 };
 
 //shader code
@@ -25,6 +26,6 @@ PS_OUT deferred_ps_main(VS_OUT input) : SV_TARGET
     output.color = m_texture.Sample(wrapSampler, input.tex);
     //store the normal
     output.normal = float4(input.normal, 1.0f);
-
+    output.position = input.pos;
     return output;
 }

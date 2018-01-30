@@ -43,6 +43,7 @@ bool ModelLoader::load(ID3D11Device* pDev, char* file_path)
 		{
 			float x, y, z;
 			fscanf_s(model, "%f %f %f\n", &x, &y, &z);
+			z *= -1.0f;
 			_tModel.vertices.push_back(Vertex(x, y, z));
 			vCount++;
 		}
@@ -50,6 +51,7 @@ bool ModelLoader::load(ID3D11Device* pDev, char* file_path)
 		{
 			float u, v;
 			fscanf_s(model, "%f %f\n", &u, &v);
+			v = 1.0f - v;
 			_tModel.texCoords.push_back(TexCoord(u, v));
 			vtCount++;
 		}
@@ -57,6 +59,7 @@ bool ModelLoader::load(ID3D11Device* pDev, char* file_path)
 		{
 			float x, y, z;
 			fscanf_s(model, "%f %f %f\n", &x, &y, &z);
+			z *= -1.0f;
 			_tModel.normals.push_back(Normal(x, y, z));
 			vnCount++;
 		}
@@ -76,17 +79,17 @@ bool ModelLoader::load(ID3D11Device* pDev, char* file_path)
 					return false; //something was missed 
 				else
 				{
-					_tModel.vtxIndices.push_back(v1 - 1);
-					_tModel.vtxIndices.push_back(v2 - 1);
 					_tModel.vtxIndices.push_back(v3 - 1);
+					_tModel.vtxIndices.push_back(v2 - 1);
+					_tModel.vtxIndices.push_back(v1 - 1);
 
-					_tModel.uvIndices.push_back(vt1 - 1);
-					_tModel.uvIndices.push_back(vt2 - 1);
 					_tModel.uvIndices.push_back(vt3 - 1);
+					_tModel.uvIndices.push_back(vt2 - 1);
+					_tModel.uvIndices.push_back(vt1 - 1);
 
-					_tModel.normalIndices.push_back(vn1 - 1);
-					_tModel.normalIndices.push_back(vn2 - 1);
 					_tModel.normalIndices.push_back(vn3 - 1);
+					_tModel.normalIndices.push_back(vn2 - 1);
+					_tModel.normalIndices.push_back(vn1 - 1);
 				}
 			}
 			if (vCount != 0 && vtCount != 0 && vnCount == 0)

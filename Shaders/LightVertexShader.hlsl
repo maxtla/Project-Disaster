@@ -8,12 +8,15 @@ cbuffer MatrixBuffer
 struct VS_IN
 {
     float4 pos : POSITION;
+    float3 normal : NORMAL;
     float2 tex : TEXCOORD0;
 };
 
 struct VS_OUT
 {
     float4 pos : SV_POSITION;
+    float3 c_pos : POSITION;
+    float3 normal : NORMAL;
     float2 tex : TEXCOORD0;
 };
 
@@ -23,11 +26,12 @@ VS_OUT light_vs_main(VS_IN input)
 
     input.pos.w = 1.0f;
 
-    output.pos = mul(input.pos, world);
-    output.pos = mul(output.pos, view);
-    output.pos = mul(output.pos, projection);
+    output.pos = input.pos;
 
     output.tex = input.tex;
+    output.normal = input.normal;
+
+    output.c_pos = float3(view._41, view._42, view._43);
 
     return output;
 }

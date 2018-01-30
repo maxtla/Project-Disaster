@@ -111,7 +111,7 @@ bool DeferredShader::initializeShader(ID3D11Device * pDev, HWND hwnd, WCHAR * ve
 	//create the input layout for the vertex shader
 	layoutDescriptions[0].SemanticName = "POSITION";
 	layoutDescriptions[0].SemanticIndex = 0;
-	layoutDescriptions[0].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	layoutDescriptions[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
 	layoutDescriptions[0].InputSlot = 0;
 	layoutDescriptions[0].AlignedByteOffset = 0;
 	layoutDescriptions[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
