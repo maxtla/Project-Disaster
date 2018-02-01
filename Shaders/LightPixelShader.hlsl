@@ -15,11 +15,10 @@ cbuffer LightBuffer : register(b0)
 
 cbuffer MaterialBuffer : register(b1)
 {
-    float3 ambient;
-    float3 diffuse;
-    float3 specular;
+    float ambient;
+    float diffuse;
+    float specular;
     float specular_exponent;
-    float d_factor;
 };
 
 struct VS_OUT
@@ -39,18 +38,20 @@ float4 light_ps_main(VS_OUT input) : SV_TARGET
     normals = normalTexture.Sample(pointSampler, input.tex);
     positions = positionTexture.Sample(pointSampler, input.tex);
 
+    //Phong Rion model
     if (length(normals.xyz) > 0.0f)
     {
         float3 normal = normalize(normals.xyz);
         float3 lightDir = normalize(lightPos.xyz - positions.xyz);
-        float3 eyeDir= normalize(input.c_pos - positions.xyz);
-        float3 vHalfVector = normalize(lightDir + eyeDir);
+        float3 V = normalize(input.c_pos - positions.xyz);
+        float3 R = normalize(reflect(lightDir, normal));
 
-        float3 ambientPart = colors.xyz * ambientLight;
-        float3 diffusionPart = saturate(dot(normal, lightDir)) * colors.xyz;
-        float specularPart = pow(saturate(dot(normal, vHalfVector)), 100) * 1.5;
+        float4 Ia = (1.0f - ambient) * ambientLight;
+        float Id = diffuse * saturate(dot(normal, lightDir));
+        float Is = specular * pow(saturate(dot(R, V)), specular_exponent);
 
-        colors = saturate(float4((ambientPart + diffusionPart + specularPart), 1.0f));
+        float4 I = saturate(Ia + (Id + Is) * lightColor);
+        colors = I * colors;
     }
 
     return colors;

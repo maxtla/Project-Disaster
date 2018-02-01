@@ -64,12 +64,11 @@ struct VerticesUVsNormals
 __declspec(align(16))
 struct Material
 {
-	float a_x, a_y, a_z; //ambient color
-	float d_x, d_y, d_z; //diffuse color
-	float s_x, s_y, s_z; //specular color
+	float ambient;//ambient color , we need to inverse this in the px shader = 1 - ambient
+	float diffuse; //diffuse color
+	float specular;//specular color
 	float specular_exponent;
-	float d_factor; //transparency factor 1.0 means fully opaque, Tr = 1 - d_factor;
-
+	//float d_factor; //transparency factor 1.0 means fully opaque, Tr = 1 - d_factor;
 };
 
 class Model

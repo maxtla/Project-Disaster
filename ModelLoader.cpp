@@ -158,20 +158,20 @@ bool ModelLoader::load(ID3D11Device* pDev, char* file_path)
 		}
 		if (strcmp(lineBuffer, "Ka") == 0)
 		{
-			fscanf_s(material, "%f %f %f", &_tModel.material.a_x, &_tModel.material.a_y, &_tModel.material.a_z);
+			fscanf_s(material, "%f", &_tModel.material.ambient);
 		}
 		if (strcmp(lineBuffer, "Kd") == 0)
 		{
-			fscanf_s(material, "%f %f %f", &_tModel.material.d_x,& _tModel.material.d_y, &_tModel.material.d_z);
+			fscanf_s(material, "%f", &_tModel.material.diffuse);
 		}
 		if (strcmp(lineBuffer, "Ks") == 0)
 		{
-			fscanf_s(material, "%f %f %f", &_tModel.material.s_x, &_tModel.material.s_y, &_tModel.material.s_z);
+			fscanf_s(material, "%f", &_tModel.material.specular);
 		}
-		if (strcmp(lineBuffer, "d") == 0)
+		/*if (strcmp(lineBuffer, "d") == 0)
 		{
 			fscanf_s(material, "%f", &_tModel.material.d_factor);
-		}
+		}*/
 		if (strcmp(lineBuffer, "map_Kd") == 0) //check for texture file name
 		{
 			fscanf_s(material, "%s", texture_file, (unsigned int)sizeof(texture_file));
