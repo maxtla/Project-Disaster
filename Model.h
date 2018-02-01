@@ -4,6 +4,8 @@
 #include <vector>
 #include <d3d11.h>
 #include "WICTextureLoader.h"
+#include <comdef.h>
+#include <stdio.h>
 
 using namespace std;
 using namespace DirectX;
@@ -59,11 +61,12 @@ struct VerticesUVsNormals
 	float a, b, c;  //normal
 };
 
+__declspec(align(16))
 struct Material
 {
-	float ambient[3] = { 0 };
-	float diffuse[3] = { 0 };
-	float specular[3] = { 0 };
+	float a_x, a_y, a_z; //ambient color
+	float d_x, d_y, d_z; //diffuse color
+	float s_x, s_y, s_z; //specular color
 	float specular_exponent;
 	float d_factor; //transparency factor 1.0 means fully opaque, Tr = 1 - d_factor;
 
@@ -76,6 +79,7 @@ private:
 	ID3D11ShaderResourceView* _modelTextureView;
 	ID3D11Resource* _modelResource;
 	ID3D11SamplerState* _modelSamplerState;
+	ID3D11Buffer* _pMaterialBuffer;
 	VerticesUVsNormals* _pVerticesUvNormArr;
 public:
 	Model();
@@ -97,6 +101,7 @@ public:
 	ID3D11SamplerState* getSampler();
 	VerticesUVsNormals* getData();
 	int getVertexCount();
+	ID3D11Buffer * getMaterialBuffer();
 	void Render(ID3D11DeviceContext *pDevCon);
 	void Release();
 

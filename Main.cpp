@@ -43,9 +43,9 @@ DeferredShader* pDeferredShader;
 LightShader* pLightShader;
 
 //shoudl maybe create a light object class for this
-XMVECTOR lightDir = XMVectorSet(0.f, 0.f, 1.f, 0.f);
+XMVECTOR lightPos = XMVectorSet(0.0f, 0.0f, -5.0f, 1.f);
 //maybe create a camera klass for this?
-XMMATRIX view = XMMatrixLookAtLH(XMVectorSet(0.0f, 0.0f, -3.f, 1.0f), XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
+XMMATRIX view = XMMatrixLookAtLH(XMVectorSet(0.0f, 0.0f, -3.0f, 1.0f), XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
 XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PI * 0.45f, ((float)WIDTH) / HEIGHT, 0.1f, 20.0f);
 XMMATRIX world = XMMatrixIdentity();
 //2D projection matrix
@@ -404,6 +404,8 @@ bool initD3D11App(HINSTANCE hInstance)
 	hr = pDev->CreateDepthStencilState(&depthDisabledStencilDesc, &pDepthDisabledStencilState);
 	if (FAILED(hr))
 		return false;
+	
+	
 
 	return true;
 }
@@ -431,7 +433,7 @@ bool initScene()
 	if (pModelLoader == nullptr)
 		pModelLoader = new ModelLoader();
 	//load in Cube.obj
-	if (!pModelLoader->load(pDev, "Assets//Sphere.obj"))
+	if (!pModelLoader->load(pDev, "Assets//monkey.obj"))
 		return false;
 	//init deferred buffer
 	if (pDeferredBuffer == nullptr)
@@ -473,7 +475,7 @@ void updateScene()
 
 	//world =  XMMatrixMultiply( XMMatrixRotationY(rotationValue), XMMatrixRotationX(rotationValue - 0.00002f));
 	world = XMMatrixRotationY(rotationValue);
-	rotationValue += 0.0005f;
+	rotationValue += 0.00005f;
 }
 
 void renderScene()
@@ -504,8 +506,9 @@ void renderScene()
 
 	for (int i = 0; i < pModelLoader->size(); i++)
 	{
-		pLightShader->Render(pDevCon, pModelLoader->getModel(i).getVertexCount(), world, view, projection,
-			pDeferredBuffer->getShaderResourceView(0), pDeferredBuffer->getShaderResourceView(1), pDeferredBuffer->getShaderResourceView(2), lightDir);
+		pLightShader->Render(pDevCon, world, view, projection, pDeferredBuffer->getShaderResourceView(0), 
+							 pDeferredBuffer->getShaderResourceView(1), pDeferredBuffer->getShaderResourceView(2), 
+							 pModelLoader->getModel(i).getMaterialBuffer(), lightPos);
 	}
 	
 	//enable depth

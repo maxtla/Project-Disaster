@@ -6,16 +6,26 @@ Texture2D positionTexture : register(t2);
 SamplerState pointSampler : register(s0);
 
 //constant buffer
-cbuffer LightBuffer
+cbuffer LightBuffer : register(b0)
 {
-    float3 lightDir;
+    float4 lightPos;
+    float4 lightColor;
+    float4 ambientLight;
+};
+
+cbuffer MaterialBuffer : register(b1)
+{
+    float3 ambient;
+    float3 diffuse;
+    float3 specular;
+    float specular_exponent;
+    float d_factor;
 };
 
 struct VS_OUT
 {
     float4 pos : SV_POSITION;
     float3 c_pos : POSITION;
-    float3 normal : NORMAL;
     float2 tex : TEXCOORD0;
 };
 
@@ -23,33 +33,25 @@ float4 light_ps_main(VS_OUT input) : SV_TARGET
 {
     float4 colors;
     float4 normals;
-    float3 light_dir;
-    float diffuseFactor;
-    float4 finalColor = { 0.0f, 0.0f, 0.0f, 1.0f };
-    float3 c_position;
+    float4 positions;
 
     colors = colorTexture.Sample(pointSampler, input.tex);
     normals = normalTexture.Sample(pointSampler, input.tex);
-    input.pos = positionTexture.Sample(pointSampler, input.tex);
-    if (length(normals) > 0.0f)
-    {
-        light_dir = -lightDir;
-        light_dir = normalize(light_dir);
-        c_position = input.c_pos;
-        diffuseFactor = saturate(dot(normals.xyz, light_dir));
-        float specular = 0.0f;
-        if (diffuseFactor > 0.0f)
-        {
-            normals.xyz = normalize(normals.xyz);
-            float3 viewDir = normalize(-c_position);
-            float3 halfDir = normalize(lightDir + viewDir);
-            float specAngle = saturate(dot(halfDir, normals));
-            specular = pow(specAngle, 0.1f);
-        }
-        float3 colorLinear = diffuseFactor * colors.xyz + specular * float3(1.0f, 1.0f, 1.0f);
-        finalColor = float4(pow(colorLinear, float3(1.0f/2.2f, 1.0f/2.2f, 1.0f/2.2f)), 1.0f);
+    positions = positionTexture.Sample(pointSampler, input.tex);
 
+    if (length(normals.xyz) > 0.0f)
+    {
+        float3 normal = normalize(normals.xyz);
+        float3 lightDir = normalize(lightPos.xyz - positions.xyz);
+        float3 eyeDir= normalize(input.c_pos - positions.xyz);
+        float3 vHalfVector = normalize(lightDir + eyeDir);
+
+        float3 ambientPart = colors.xyz * ambientLight;
+        float3 diffusionPart = saturate(dot(normal, lightDir)) * colors.xyz;
+        float specularPart = pow(saturate(dot(normal, vHalfVector)), 100) * 1.5;
+
+        colors = saturate(float4((ambientPart + diffusionPart + specularPart), 1.0f));
     }
 
-    return finalColor;
+    return colors;
 }

@@ -8,7 +8,10 @@ bool Model::initializeBuffer(ID3D11Device * pDev)
 	vertices = this->getData();
 	D3D11_BUFFER_DESC vertexBufferDesc;
 	D3D11_SUBRESOURCE_DATA vertexData;
+	D3D11_BUFFER_DESC materialBufferDesc;
+	D3D11_SUBRESOURCE_DATA materialData;
 	HRESULT hr;
+
 	if (vertices == nullptr)
 		return false;
 
@@ -29,6 +32,29 @@ bool Model::initializeBuffer(ID3D11Device * pDev)
 	hr = pDev->CreateBuffer(&vertexBufferDesc, &vertexData, &this->pVertexBuffer);
 	if (FAILED(hr))
 		return false;
+	//prepare material const buffer
+	materialBufferDesc.Usage = D3D11_USAGE_IMMUTABLE; //this means it can only be read by the GPU and can not be accessed by the CPU. After initialization the data can not be changed. Which is OK for now
+	materialBufferDesc.ByteWidth = (unsigned int)(sizeof(Material));
+	materialBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	materialBufferDesc.CPUAccessFlags = 0;
+	materialBufferDesc.MiscFlags = 0;
+	materialBufferDesc.StructureByteStride = 0;
+
+	// Give the subresource structure a pointer to the material data.
+
+	materialData.pSysMem = &material;
+	materialData.SysMemPitch = 0;
+	materialData.SysMemSlicePitch = 0;
+
+	//create material const buffer
+	hr = pDev->CreateBuffer(&materialBufferDesc, &materialData, &this->_pMaterialBuffer);
+	if (FAILED(hr))
+	{
+		const TCHAR * err = _com_error(hr).ErrorMessage();
+
+		OutputDebugString(err);
+		return false;
+	}
 
 	return true;
 }
@@ -37,6 +63,10 @@ Model::Model()
 {
 	NO_NORMALS = 0;
 	this->_pVerticesUvNormArr = nullptr;
+	this->_modelResource = nullptr;
+	this->_modelSamplerState = nullptr;
+	this->_modelTextureView = nullptr;
+	this->_pMaterialBuffer = nullptr;
 }
 
 
@@ -119,6 +149,11 @@ VerticesUVsNormals * Model::getData()
 int Model::getVertexCount()
 {
 	return (int)this->vtxIndices.size();
+}
+
+ID3D11Buffer * Model::getMaterialBuffer()
+{
+	return this->_pMaterialBuffer;
 }
 
 void Model::Render(ID3D11DeviceContext * pDevCon)

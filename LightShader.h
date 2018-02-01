@@ -21,7 +21,9 @@ private:
 	};
 	struct LightBufferStruct
 	{
-		XMVECTOR lightDir;
+		XMVECTOR lightPos;
+		XMVECTOR lightColor;
+		XMVECTOR ambientLight;
 	};
 	struct Vertex
 	{
@@ -41,21 +43,20 @@ private:
 	ID3D11Buffer* _pMatrixBuffer;
 	ID3D11Buffer* _pLightBuffer;
 	ID3D11Buffer* _pVertexBuffer;
-	ID3D11Buffer* _pIndexBuffer;
 	FullScreenQuad _fullScreenQuad;
 	// private methods
 	void initFullScreenQuad();
 	bool InitializeShader(ID3D11Device* pDev, HWND hwnd, WCHAR* vtx_shader_path, WCHAR* px_shader_path);
 	void ReleaseShader();
 	void OutputShaderErrorMessage(ID3D10Blob* blob, HWND hwnd, WCHAR* fileName);
-	bool SetShaderParameters(ID3D11DeviceContext* pDevCon, XMMATRIX world, XMMATRIX view, XMMATRIX projection, ID3D11ShaderResourceView*, ID3D11ShaderResourceView*, ID3D11ShaderResourceView*, XMVECTOR lightDir);
-	void RenderShader(ID3D11DeviceContext* pDevCon, int vertexCount);
+	bool SetShaderParameters(ID3D11DeviceContext* pDevCon, XMMATRIX world, XMMATRIX view, XMMATRIX projection, ID3D11ShaderResourceView* colorTexture, ID3D11ShaderResourceView* normalTexture, ID3D11ShaderResourceView* positionTexture, ID3D11Buffer* materialBuffer, XMVECTOR lightDir);
+	void RenderShader(ID3D11DeviceContext* pDevCon);
 public:
 	LightShader();
 	~LightShader();
 	bool initialize(ID3D11Device* pDev, HWND hwnd);
 	void Release();
-	bool Render(ID3D11DeviceContext *pDevCon, int, XMMATRIX world, XMMATRIX view, XMMATRIX projection, ID3D11ShaderResourceView*, ID3D11ShaderResourceView*, ID3D11ShaderResourceView*, XMVECTOR lightDir);
+	bool Render(ID3D11DeviceContext *pDevCon, XMMATRIX world, XMMATRIX view, XMMATRIX projection, ID3D11ShaderResourceView* colorTexture, ID3D11ShaderResourceView* normalTexture, ID3D11ShaderResourceView* positionTexture, ID3D11Buffer* materialBuffer, XMVECTOR lightDir);
 };
 
 #endif // ! _LIGHTSHADER_H

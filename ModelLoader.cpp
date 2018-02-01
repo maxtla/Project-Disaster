@@ -158,15 +158,15 @@ bool ModelLoader::load(ID3D11Device* pDev, char* file_path)
 		}
 		if (strcmp(lineBuffer, "Ka") == 0)
 		{
-			fscanf_s(material, "%f %f %f", &_tModel.material.ambient[0], &_tModel.material.ambient[1], &_tModel.material.ambient[2]);
+			fscanf_s(material, "%f %f %f", &_tModel.material.a_x, &_tModel.material.a_y, &_tModel.material.a_z);
 		}
 		if (strcmp(lineBuffer, "Kd") == 0)
 		{
-			fscanf_s(material, "%f %f %f", &_tModel.material.diffuse[0],& _tModel.material.diffuse[1], &_tModel.material.diffuse[2]);
+			fscanf_s(material, "%f %f %f", &_tModel.material.d_x,& _tModel.material.d_y, &_tModel.material.d_z);
 		}
 		if (strcmp(lineBuffer, "Ks") == 0)
 		{
-			fscanf_s(material, "%f %f %f", &_tModel.material.specular[0], &_tModel.material.specular[1], &_tModel.material.specular[2]);
+			fscanf_s(material, "%f %f %f", &_tModel.material.s_x, &_tModel.material.s_y, &_tModel.material.s_z);
 		}
 		if (strcmp(lineBuffer, "d") == 0)
 		{
