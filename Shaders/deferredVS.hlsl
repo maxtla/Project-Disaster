@@ -19,7 +19,7 @@ struct VS_OUT
     float4 pos : SV_POSITION;
     float4 w_pos : POSITION;
     float2 tex : TEXCOORD0;
-    nointerpolation float4 normal : NORMAL;
+    float4 normal : NORMAL;
 };
 
 //shader code
