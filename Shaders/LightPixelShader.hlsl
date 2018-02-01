@@ -46,7 +46,7 @@ float4 light_ps_main(VS_OUT input) : SV_TARGET
         float3 V = normalize(input.c_pos - positions.xyz);
         float3 R = normalize(reflect(lightDir, normal));
 
-        float4 Ia = (1.0f - ambient) * ambientLight;
+        float4 Ia = ambient * ambientLight;
         float Id = diffuse * saturate(dot(normal, lightDir));
         float Is = specular * pow(saturate(dot(R, V)), specular_exponent);
 
