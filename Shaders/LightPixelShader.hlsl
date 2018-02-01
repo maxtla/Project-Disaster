@@ -1,18 +1,30 @@
 Texture2D colorTexture : register(t0);
 Texture2D normalTexture : register(t1);
+Texture2D positionTexture : register(t2);
 
 //point smapler is required for per-pixeldata values from the render textures
 SamplerState pointSampler : register(s0);
 
 //constant buffer
-cbuffer LightBuffer
+cbuffer LightBuffer : register(b0)
 {
-    float3 lightDir;
+    float4 lightPos;
+    float4 lightColor;
+    float4 ambientLight;
+};
+
+cbuffer MaterialBuffer : register(b1)
+{
+    float ambient;
+    float diffuse;
+    float specular;
+    float specular_exponent;
 };
 
 struct VS_OUT
 {
     float4 pos : SV_POSITION;
+    float3 c_pos : POSITION;
     float2 tex : TEXCOORD0;
 };
 
@@ -20,20 +32,27 @@ float4 light_ps_main(VS_OUT input) : SV_TARGET
 {
     float4 colors;
     float4 normals;
-    float3 light_dir;
-    float diffuseFactor;
-    float4 finalColor;
+    float4 positions;
 
     colors = colorTexture.Sample(pointSampler, input.tex);
     normals = normalTexture.Sample(pointSampler, input.tex);
+    positions = positionTexture.Sample(pointSampler, input.tex);
 
-    light_dir = -lightDir;
-    light_dir = normalize(light_dir);
-    normals.xyz = normalize(normals.xyz);
+    //Phong Rion model
+    if (length(normals.xyz) > 0.0f)
+    {
+        float3 normal = normalize(normals.xyz);
+        float3 lightDir = normalize(lightPos.xyz - positions.xyz);
+        float3 V = normalize(input.c_pos - positions.xyz);
+        float3 R = normalize(reflect(lightDir, normal));
 
-    diffuseFactor = saturate(dot(normals.xyz, light_dir));
+        float4 Ia = (1.0f - ambient) * ambientLight;
+        float Id = diffuse * saturate(dot(normal, lightDir));
+        float Is = specular * pow(saturate(dot(R, V)), specular_exponent);
 
-    finalColor = saturate(colors * diffuseFactor);
+        float4 I = saturate(Ia + (Id + Is) * lightColor);
+        colors = I * colors;
+    }
 
-    return finalColor;
+    return colors;
 }

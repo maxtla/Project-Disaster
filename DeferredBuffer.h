@@ -4,7 +4,7 @@
 //includes
 #include <d3d11.h>
 //macros
-#define ARR_SIZE 2
+#define ARR_SIZE 3
 
 class DeferredBuffer
 {

@@ -43,9 +43,9 @@ DeferredShader* pDeferredShader;
 LightShader* pLightShader;
 
 //shoudl maybe create a light object class for this
-XMVECTOR lightDir = XMVectorSet(0.f, 0.f, 1.f, 0.f);
+XMVECTOR lightPos = XMVectorSet(0.0f, 0.0f, -5.0f, 1.f);
 //maybe create a camera klass for this?
-XMMATRIX view = XMMatrixLookAtLH(XMVectorSet(0.0f, 0.0f, -3.f, 1.0f), XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
+XMMATRIX view = XMMatrixLookAtLH(XMVectorSet(0.0f, 0.0f, -3.0f, 1.0f), XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
 XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PI * 0.45f, ((float)WIDTH) / HEIGHT, 0.1f, 20.0f);
 XMMATRIX world = XMMatrixIdentity();
 //2D projection matrix
@@ -345,7 +345,7 @@ bool initD3D11App(HINSTANCE hInstance)
 	rasterDesc.DepthClipEnable = true;
 	rasterDesc.FillMode = D3D11_FILL_SOLID;
 	rasterDesc.FrontCounterClockwise = false;
-	rasterDesc.MultisampleEnable = false;
+	rasterDesc.MultisampleEnable = true;
 	rasterDesc.ScissorEnable = false;
 	rasterDesc.SlopeScaledDepthBias = 0.0f;
 	//create rasterizer state
@@ -404,6 +404,8 @@ bool initD3D11App(HINSTANCE hInstance)
 	hr = pDev->CreateDepthStencilState(&depthDisabledStencilDesc, &pDepthDisabledStencilState);
 	if (FAILED(hr))
 		return false;
+	
+	
 
 	return true;
 }
@@ -431,7 +433,7 @@ bool initScene()
 	if (pModelLoader == nullptr)
 		pModelLoader = new ModelLoader();
 	//load in Cube.obj
-	if (!pModelLoader->load(pDev, "Assets//Cube.obj"))
+	if (!pModelLoader->load(pDev, "Assets//monkey.obj"))
 		return false;
 	//init deferred buffer
 	if (pDeferredBuffer == nullptr)
@@ -471,39 +473,46 @@ void updateScene()
 	if (blue >= 1.0f || blue <= 0.0f)
 		colormodb *= -1;
 
-	world =  XMMatrixMultiply( XMMatrixRotationY(rotationValue), XMMatrixRotationX(rotationValue - 0.00002f));
-	//world = XMMatrixRotationY(rotationValue);
+	//world =  XMMatrixMultiply( XMMatrixRotationY(rotationValue), XMMatrixRotationX(rotationValue - 0.00002f));
+	world = XMMatrixRotationY(rotationValue);
 	rotationValue += 0.00005f;
 }
 
 void renderScene()
 {
+	// ------ FIRST PASS -----
 	//first we must render the scene using the deferred shader
-	//pDeferredBuffer->setRenderTargets(pDevCon);
-	//pDeferredBuffer->clearRenderTargets(pDevCon, 0.0f, 0.0f, 0.0f, 1.0f);
-	//pDevCon->OMSetRenderTargets(1, &pRTV, pDSV);
-	float color[4] = { 0.f, 0.f, 0.f, 1.0f };
-	pDevCon->ClearRenderTargetView(pRTV, color);
-	pDevCon->ClearDepthStencilView(pDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
+	pDeferredBuffer->setRenderTargets(pDevCon);
+	pDeferredBuffer->clearRenderTargets(pDevCon, 0.0f, 0.0f, 0.0f, 1.0f);
 	for (int i = 0; i < pModelLoader->size(); i++)
 	{
 		pModelLoader->getModel(i).Render(pDevCon);
 		pDeferredShader->render(pDevCon, pModelLoader->getModel(i).getVertexCount(), world, view, projection, pModelLoader->getModel(i).getTexture(), pModelLoader->getModel(i).getSampler());
 	}
+
+
+
+	// ------ LIGHT PASS -----
 	//reset the render target back to the original backbuffer
-	////reset the viewport
-	//pDevCon->RSSetViewports(1, &_viewPort);
-	////clear scene for 2D rendering
-	////setup scene for 2D rendering
-	//pDevCon->OMSetDepthStencilState(pDepthDisabledStencilState, 1);
+	pDevCon->OMSetRenderTargets(1, &pRTV, pDSV);
+	//reset the viewport
+	pDevCon->RSSetViewports(1, &_viewPort);
+	//clear scene for 2D rendering
+	float color[4] = { 0.f, 0.f, 0.f, 1.0f };
+	pDevCon->ClearRenderTargetView(pRTV, color);
+	pDevCon->ClearDepthStencilView(pDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
+	//setup scene for 2D rendering - disable depth
+	pDevCon->OMSetDepthStencilState(pDepthDisabledStencilState, 1);
 
-	//for (int i = 0; i < pModelLoader->size(); i++)
-	//{
-	//	pLightShader->Render(pDevCon, pModelLoader->getModel(i).getVertexCount(), world, view, _2D_projection,
-	//		pDeferredBuffer->getShaderResourceView(0), pDeferredBuffer->getShaderResourceView(1), lightDir);
-	//}
-
-	//pDevCon->OMSetDepthStencilState(pDepthStencilState, 1);
+	for (int i = 0; i < pModelLoader->size(); i++)
+	{
+		pLightShader->Render(pDevCon, world, view, projection, pDeferredBuffer->getShaderResourceView(0), 
+							 pDeferredBuffer->getShaderResourceView(1), pDeferredBuffer->getShaderResourceView(2), 
+							 pModelLoader->getModel(i).getMaterialBuffer(), lightPos);
+	}
+	
+	//enable depth
+	pDevCon->OMSetDepthStencilState(pDepthStencilState, 1);
 
 	pSwapChain->Present(0, 0);
 }

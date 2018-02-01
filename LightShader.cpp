@@ -11,6 +11,8 @@ LightShader::LightShader()
 	this->_pPixelShader = nullptr;
 	this->_pSampleState = nullptr;
 	this->_pVertexShader = nullptr;
+	this->_pVertexBuffer = nullptr;
+	this->initFullScreenQuad();
 }
 
 
@@ -31,16 +33,28 @@ void LightShader::Release()
 	this->ReleaseShader();
 }
 
-bool LightShader::Render(ID3D11DeviceContext * pDevCon, int indexCount, XMMATRIX world, XMMATRIX view, XMMATRIX projection, ID3D11ShaderResourceView * colorTexture, ID3D11ShaderResourceView * normalTexture, XMVECTOR lightDir)
+bool LightShader::Render(ID3D11DeviceContext * pDevCon, XMMATRIX world, XMMATRIX view, XMMATRIX projection, ID3D11ShaderResourceView * colorTexture, ID3D11ShaderResourceView * normalTexture, ID3D11ShaderResourceView* positionTexture, ID3D11Buffer* materialBuffer, XMVECTOR lightDir)
 {
-	if (!SetShaderParameters(pDevCon, world, view, projection, colorTexture, normalTexture, lightDir))
+	if (!SetShaderParameters(pDevCon, world, view, projection, colorTexture, normalTexture, positionTexture, materialBuffer, lightDir))
 		return false;
 
-	RenderShader(pDevCon, indexCount);
+	RenderShader(pDevCon);
 
 	return true;
 }
 
+
+void LightShader::initFullScreenQuad()
+{
+	this->_fullScreenQuad.vertices.resize(6);
+
+	this->_fullScreenQuad.vertices[0] = { { -1.0f, -1.0f, 0.0f },{ 0.0f, 1.0f } };
+	this->_fullScreenQuad.vertices[1] = { { -1.0f, 1.0f, 0.0f },{ 0.0f, 0.0f } };
+	this->_fullScreenQuad.vertices[2] = { { 1.0f, 1.0f, 0.0f },{ 1.0f, 0.0f } };
+	this->_fullScreenQuad.vertices[3] = { { -1.0f, -1.0f, 0.0f },{ 0.0f, 1.0f } };
+	this->_fullScreenQuad.vertices[4] = { { 1.0f, 1.0f, 0.0f },{ 1.0f, 0.0f } };
+	this->_fullScreenQuad.vertices[5] = { { 1.0f, -1.0f, 0.0f },{ 1.0f, 1.0f } };
+}
 
 bool LightShader::InitializeShader(ID3D11Device * pDev, HWND hwnd, WCHAR * vtx_shader_path, WCHAR * px_shader_path)
 {
@@ -53,6 +67,7 @@ bool LightShader::InitializeShader(ID3D11Device * pDev, HWND hwnd, WCHAR * vtx_s
 	D3D11_SAMPLER_DESC samplerDesc;
 	D3D11_BUFFER_DESC matrixBufferDesc;
 	D3D11_BUFFER_DESC lightBufferDesc;
+	
 
 	//compile vtx shader code
 	hr = D3DCompileFromFile(vtx_shader_path,
@@ -182,6 +197,17 @@ bool LightShader::InitializeShader(ID3D11Device * pDev, HWND hwnd, WCHAR * vtx_s
 	if (FAILED(hr))
 		return false;
 
+	//create vertex buffer
+	D3D11_BUFFER_DESC vertexBufferDesc{ 0, D3D11_USAGE_IMMUTABLE, D3D11_BIND_VERTEX_BUFFER, 0, 0, 0 };
+	D3D11_SUBRESOURCE_DATA vertexSubresourceData{};
+
+	vertexBufferDesc.ByteWidth = sizeof(Vertex) * (UINT)this->_fullScreenQuad.vertices.size();
+	vertexSubresourceData.pSysMem = this->_fullScreenQuad.vertices.data();
+
+	hr = pDev->CreateBuffer(&vertexBufferDesc, &vertexSubresourceData, &this->_pVertexBuffer);
+	if (FAILED(hr))
+		return false;
+
 	return true;
 }
 
@@ -217,6 +243,12 @@ void LightShader::ReleaseShader()
 		this->_pVertexShader->Release();
 		this->_pVertexShader = nullptr;
 	}
+	if (this->_pVertexBuffer)
+	{
+		this->_pVertexBuffer->Release();
+		this->_pVertexBuffer = nullptr;
+	}
+		
 }
 
 void LightShader::OutputShaderErrorMessage(ID3D10Blob * blob, HWND hwnd, WCHAR * fileName)
@@ -226,7 +258,7 @@ void LightShader::OutputShaderErrorMessage(ID3D10Blob * blob, HWND hwnd, WCHAR *
 	ofstream fileOut;
 
 	error = (char*)(blob->GetBufferPointer());
-	bufferSIze = blob->GetBufferSize();
+	bufferSIze = (UINT)blob->GetBufferSize();
 
 	fileOut.open("light_shader_error.txt");
 
@@ -243,7 +275,7 @@ void LightShader::OutputShaderErrorMessage(ID3D10Blob * blob, HWND hwnd, WCHAR *
 	MessageBox(hwnd, L"Error compiling light shader. Check light_shader_error.txt", fileName, MB_OK);
 }
 
-bool LightShader::SetShaderParameters(ID3D11DeviceContext * pDevCon, XMMATRIX world, XMMATRIX view, XMMATRIX projection, ID3D11ShaderResourceView * colorTexture, ID3D11ShaderResourceView * normalTexture, XMVECTOR lightDir)
+bool LightShader::SetShaderParameters(ID3D11DeviceContext * pDevCon, XMMATRIX world, XMMATRIX view, XMMATRIX projection, ID3D11ShaderResourceView * colorTexture, ID3D11ShaderResourceView * normalTexture, ID3D11ShaderResourceView* positionTexture, ID3D11Buffer* materialBuffer, XMVECTOR lightDir)
 {
 	HRESULT hr;
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
@@ -286,16 +318,19 @@ bool LightShader::SetShaderParameters(ID3D11DeviceContext * pDevCon, XMMATRIX wo
 
 	//same procedure as above
 	dataPtrLight = (LightBufferStruct*)mappedResource.pData;
-	dataPtrLight->lightDir = lightDir;
+	dataPtrLight->lightPos = lightDir;
+	dataPtrLight->lightColor = XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f);
+	dataPtrLight->ambientLight = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
 	pDevCon->Unmap(this->_pLightBuffer, 0);
 	bufferNr = 0;
 	//set the constant buffer in px shader
-	pDevCon->PSSetConstantBuffers(bufferNr, 1, &this->_pLightBuffer);
+	pDevCon->PSSetConstantBuffers(bufferNr++, 1, &this->_pLightBuffer);
+	pDevCon->PSSetConstantBuffers(bufferNr, 1, &materialBuffer);
 
 	return true;
 }
 
-void LightShader::RenderShader(ID3D11DeviceContext * pDevCon, int vertexCount)
+void LightShader::RenderShader(ID3D11DeviceContext * pDevCon)
 {
 	//set the layout
 	pDevCon->IASetInputLayout(this->_pLayout);
@@ -304,6 +339,11 @@ void LightShader::RenderShader(ID3D11DeviceContext * pDevCon, int vertexCount)
 	pDevCon->PSSetShader(this->_pPixelShader, NULL, 0);
 	//set the sampler state
 	pDevCon->PSSetSamplers(0, 1, &this->_pSampleState);
+	pDevCon->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	unsigned int stride = sizeof(Vertex);
+	unsigned int offset = 0;
+	//set fullscreen quad vertex buffer
+	pDevCon->IASetVertexBuffers(0, 1, &this->_pVertexBuffer, &stride, &offset);
 	//render the geometry
-	pDevCon->Draw(vertexCount, 0);
+	pDevCon->Draw((unsigned int)this->_fullScreenQuad.vertices.size(), 0);
 }
