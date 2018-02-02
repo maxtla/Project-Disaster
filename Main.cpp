@@ -8,7 +8,7 @@
 #include "DeferredBuffer.h"
 #include "LightShader.h"
 #include<dinput.h>
-
+#include<time.h>
 
 //collect comments for the linker to include libraries here
 #pragma comment (lib, "d3d11.lib")
@@ -105,9 +105,6 @@ bool initScene();
 void updateScene();
 void updateCamera();
 void renderScene();
-void startTimer();
-double getTime();
-double getFrameTime();
 void detectKeys(double time);
 
 //Main entry point
@@ -211,6 +208,8 @@ int msgLoop() {    //The message loop
 	MSG msg;    //Create a new message structure
 	ZeroMemory(&msg, sizeof(MSG));    //clear message structure to NULL
 
+	clock_t t1 = clock();
+	clock_t t2;
 	while (true)    //while there is a message
 	{
 		//if there was a windows message
@@ -225,15 +224,11 @@ int msgLoop() {    //The message loop
 		}
 		else 
 		{    
-			frameCount++;
-			if (getTime() > 1.0f)
-			{
-				fps = frameCount;
-				frameCount = 0;
-				startTimer();
-			}
-			fTime = getFrameTime();
+			
+			t2 = clock();
+			fTime = float(difftime(t2,t1)/1000);
 			//run game code here
+			t1 = t2;
 			detectKeys(fTime);
 			updateScene();
 			renderScene();
@@ -548,33 +543,7 @@ bool initScene()
 
 	return true;
 }
-void startTimer()
-{
-	LARGE_INTEGER freq;
-	QueryPerformanceCounter(&freq);
-	countsPerSec = double(freq.QuadPart);
-	QueryPerformanceCounter(&freq);
-	counterStart = freq.QuadPart;
-}
-double getTime()
-{
-	LARGE_INTEGER currentTime;
-	QueryPerformanceCounter(&currentTime);
-	return double(currentTime.QuadPart - counterStart) / countsPerSec;
-}
-double getFrameTime()
-{
-	LARGE_INTEGER currentTime;
-	_int64 tickCount;
-	QueryPerformanceCounter(&currentTime);
 
-	tickCount = currentTime.QuadPart - fTimeOld;
-	fTimeOld = currentTime.QuadPart;
-
-	if (tickCount < 0.0f)
-		tickCount = 0.0f;
-	return float(tickCount) / countsPerSec;
-}
 void updateCamera()
 {
 	camRotationMatrix = XMMatrixRotationRollPitchYaw(camPitch, camYaw, 0);
@@ -603,7 +572,6 @@ void updateScene()
 	world = XMMatrixRotationY(rotationValue);
 	rotationValue += 0.00005f;
 }
-
 void renderScene()
 {
 	// ------ FIRST PASS -----
@@ -642,7 +610,6 @@ void renderScene()
 
 	pSwapChain->Present(0, 0);
 }
-
 void detectKeys(double time)
 {
 	DIMOUSESTATE mouseCurrState;
@@ -657,7 +624,7 @@ void detectKeys(double time)
 	
 	if (keyBoardState[DIK_ESCAPE] & 0x80)
 		PostMessage(hwnd, WM_DESTROY, 0, 0);
-	float speed = 15.0f * time;
+	float speed = 5.0f * time;
 
 	if (keyBoardState[DIK_LEFT] & 0x80)
 		moveLeftRight -= speed;
