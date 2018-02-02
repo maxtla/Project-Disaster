@@ -74,6 +74,8 @@ XMVECTOR camForward = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
 XMVECTOR camRight = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
 float camYaw = 0.0f;
 float camPitch = 0.0f;
+XMMATRIX camRotationMatrix;
+
 
 //input variables
 IDirectInputDevice8* IDKeyboard;
@@ -495,6 +497,8 @@ bool initDirectInput(HINSTANCE hInstance)
 
 void releaseObjects()
 {
+	pSwapChain->SetFullscreenState(false, NULL);
+	PostMessage(hwnd, WM_DESTROY, 0, 0);
 	pSwapChain->Release();
 	pDev->Release();
 	pDevCon->Release();
@@ -508,8 +512,10 @@ void releaseObjects()
 	pRasterStateNoCulling->Release();
 	pModelLoader->Release();
 	pLightShader->Release();
+	
 	IDKeyboard->Release();
 	IDMouse->Release();
+	DirectInput->Release();
 }
 
 bool initScene()
@@ -571,11 +577,12 @@ double getFrameTime()
 }
 void updateCamera()
 {
-	camTarget = XMVector3TransformCoord(DefaultForward, world);
+	camRotationMatrix = XMMatrixRotationRollPitchYaw(camPitch, camYaw, 0);
+	camTarget = XMVector3TransformCoord(DefaultForward, camRotationMatrix);
 	camTarget = XMVector3Normalize(camTarget);
 
-	camRight = XMVector3TransformCoord(DefaultRight, world);
-	camForward = XMVector3TransformCoord(DefaultForward, world);
+	camRight = XMVector3TransformCoord(DefaultRight, camRotationMatrix);
+	camForward = XMVector3TransformCoord(DefaultForward, camRotationMatrix);
 	camUp = XMVector3Cross(camForward, camRight);
 
 	camPosition += moveLeftRight*camRight;
