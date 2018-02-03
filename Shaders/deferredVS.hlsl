@@ -9,9 +9,11 @@ cbuffer Matrices : register(b0)
 //define structs for input and output
 struct VS_IN
 {
-    float4 pos : POSITION;
+    float3 pos : POSITION;
     float2 tex : TEXCOORD0;
     float3 normal : NORMAL;
+    float3 tangent : TANGENT;
+    float3 binormal : BINORMAL;
 };
 
 struct VS_OUT
@@ -27,9 +29,10 @@ VS_OUT deferred_vs_main(VS_IN input)
 {
     VS_OUT output;
     //adjust pos for proper matrix multiplications
-    input.pos.w = 1.0f;
+    output.pos.w = 1.0f;
     //do matrix calculations
-    output.pos = mul(input.pos, world);
+    float4 position = float4(input.pos, 1.0f);
+    output.pos = mul(position, world);
     //position in world space
     output.w_pos = output.pos;
     output.pos = mul(output.pos, view);

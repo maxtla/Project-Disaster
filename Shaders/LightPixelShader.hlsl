@@ -19,6 +19,7 @@ cbuffer MaterialBuffer : register(b1)
     float diffuse;
     float specular;
     float specular_exponent;
+    bool hasNormalMap;
 };
 
 struct VS_OUT

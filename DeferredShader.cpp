@@ -54,7 +54,7 @@ bool DeferredShader::initializeShader(ID3D11Device * pDev, HWND hwnd, WCHAR * ve
 	ID3D10Blob* errorMsg = NULL;
 	ID3D10Blob* vertexShaderBuffer = NULL;
 	ID3D10Blob* pixelShaderBuffer = NULL;
-	D3D11_INPUT_ELEMENT_DESC layoutDescriptions[3];
+	D3D11_INPUT_ELEMENT_DESC layoutDescriptions[5];
 	unsigned int numOfElements;
 	D3D11_SAMPLER_DESC samplerDesc;
 	D3D11_BUFFER_DESC matrixBufferDesc;
@@ -132,6 +132,22 @@ bool DeferredShader::initializeShader(ID3D11Device * pDev, HWND hwnd, WCHAR * ve
 	layoutDescriptions[2].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
 	layoutDescriptions[2].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 	layoutDescriptions[2].InstanceDataStepRate = 0;
+
+	layoutDescriptions[3].SemanticName = "TANGENT";
+	layoutDescriptions[3].SemanticIndex = 0;
+	layoutDescriptions[3].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+	layoutDescriptions[3].InputSlot = 0;
+	layoutDescriptions[3].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
+	layoutDescriptions[3].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+	layoutDescriptions[3].InstanceDataStepRate = 0;
+
+	layoutDescriptions[4].SemanticName = "BINORMAL";
+	layoutDescriptions[4].SemanticIndex = 0;
+	layoutDescriptions[4].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+	layoutDescriptions[4].InputSlot = 0;
+	layoutDescriptions[4].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
+	layoutDescriptions[4].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+	layoutDescriptions[4].InstanceDataStepRate = 0;
 
 	//get a count of the elements
 	numOfElements = sizeof(layoutDescriptions) / sizeof(layoutDescriptions[0]);
