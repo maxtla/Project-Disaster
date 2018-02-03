@@ -4,9 +4,67 @@
 
 
 
+void ModelLoader::_calculateTangentBinormal(Model & model, int v1, int v2, int v3, int vt1, int vt2, int vt3)
+{
+	XMFLOAT3 vtx1, vtx2, vtx3;
+	XMFLOAT2 uv1, uv2, uv3;
+	XMFLOAT3 normal;
+
+	//get vertices
+	vtx1.x = model.vertices[v1 - 1].x;
+	vtx1.y = model.vertices[v1 - 1].y;
+	vtx1.z = model.vertices[v1 - 1].z;
+
+	vtx2.x = model.vertices[v2 - 1].x;
+	vtx2.y = model.vertices[v2 - 1].y;
+	vtx2.z = model.vertices[v2 - 1].z;
+
+	vtx3.x = model.vertices[v3 - 1].x;
+	vtx3.y = model.vertices[v3 - 1].y;
+	vtx3.z = model.vertices[v3 - 1].z;
+
+	//get UVs
+	uv1.x = model.texCoords[vt1 - 1].u;
+	uv1.y = model.texCoords[vt1 - 1].v;
+
+	uv2.x = model.texCoords[vt2 - 1].u;
+	uv2.y = model.texCoords[vt2 - 1].v;
+
+	uv3.x = model.texCoords[vt3 - 1].u;
+	uv3.y = model.texCoords[vt3 - 1].v;
+
+	//load the data into XMVECTOR's so we can use DirectXMath functions for calculations
+	XMVECTOR vertex0, vertex1, vertex2, tex0, tex1, tex2;
+	vertex0 = XMLoadFloat3(&vtx1);
+	vertex1 = XMLoadFloat3(&vtx2);
+	vertex2 = XMLoadFloat3(&vtx3);
+	tex0 = XMLoadFloat2(&uv1);
+	tex1 = XMLoadFloat2(&uv2);
+	tex2 = XMLoadFloat2(&uv3);
+
+	//do the math
+	XMVECTOR e1 = vertex1 - vertex0;
+	XMVECTOR e2 = vertex2 - vertex0;
+	XMVECTOR deltaUV1 = tex1 - tex0;
+	XMVECTOR deltaUV2 = tex2 - tex0;
+
+	float r = 1.0f / (deltaUV1.m128_f32[0] * deltaUV2.m128_f32[1] - deltaUV1.m128_f32[1] * deltaUV2.m128_f32[0]);
+	XMVECTOR tangent = (e1 * deltaUV2.m128_f32[1] - e2 * deltaUV1.m128_f32[1]) * r;
+	XMVECTOR binormal = (e2 * deltaUV1.m128_f32[0] - e1 * deltaUV2.m128_f32[0]) * r;
+
+	//finally add the tangent and binormal to each vertex
+	XMStoreFloat3(&model.vertices[v1 - 1].tangent, tangent);
+	XMStoreFloat3(&model.vertices[v2 - 1].tangent, tangent);
+	XMStoreFloat3(&model.vertices[v3 - 1].tangent, tangent);
+
+	XMStoreFloat3(&model.vertices[v1 - 1].binormal, binormal);
+	XMStoreFloat3(&model.vertices[v2 - 1].binormal, binormal);
+	XMStoreFloat3(&model.vertices[v3 - 1].binormal, binormal);
+
+}
+
 ModelLoader::ModelLoader()
 {
-
 }
 
 
@@ -15,7 +73,7 @@ ModelLoader::~ModelLoader()
 	this->_models.clear();
 }
 
-bool ModelLoader::load(ID3D11Device* pDev, char* file_path)
+bool ModelLoader::load(ID3D11Device* pDev, char* file_path, XMMATRIX world)
 {
 	
 	FILE *model = nullptr;
@@ -44,7 +102,7 @@ bool ModelLoader::load(ID3D11Device* pDev, char* file_path)
 			float x, y, z;
 			fscanf_s(model, "%f %f %f\n", &x, &y, &z);
 			z *= -1.0f;
-			_tModel.vertices.push_back(Vertex(x, y, z));
+			_tModel.vertices.push_back(Vertex(x, y, z, XMFLOAT3(0.f, 0.f, 0.f), XMFLOAT3(0.f, 0.f, 0.f)));
 			vCount++;
 		}
 		if (strcmp(lineBuffer, "vt") == 0) //check for tex coords
@@ -79,6 +137,10 @@ bool ModelLoader::load(ID3D11Device* pDev, char* file_path)
 					return false; //something was missed 
 				else
 				{
+					//before we push back the indices, lets calculate the tangent and binormal for the vertices of this face
+					this->_calculateTangentBinormal(_tModel, v1, v2, v3, vt1, vt2, vt3);
+
+					//now push back the indices
 					_tModel.vtxIndices.push_back(v3 - 1);
 					_tModel.vtxIndices.push_back(v2 - 1);
 					_tModel.vtxIndices.push_back(v1 - 1);
@@ -90,6 +152,7 @@ bool ModelLoader::load(ID3D11Device* pDev, char* file_path)
 					_tModel.normalIndices.push_back(vn3 - 1);
 					_tModel.normalIndices.push_back(vn2 - 1);
 					_tModel.normalIndices.push_back(vn1 - 1);
+
 				}
 			}
 			if (vCount != 0 && vtCount != 0 && vnCount == 0)
@@ -141,7 +204,7 @@ bool ModelLoader::load(ID3D11Device* pDev, char* file_path)
 			}
 		}
 	}
-	fclose(model);
+	std::fclose(model);
 	//parse material file path correctly
 	string m_file_path = materialFile;
 	m_file_path = "Assets//" + m_file_path;
@@ -149,6 +212,8 @@ bool ModelLoader::load(ID3D11Device* pDev, char* file_path)
 	fopen_s(&material, m_file_path.c_str(), "r");
 	//local variables
 	char texture_file[64];
+	char bump_file[64];
+	_tModel.material.hasNormMap = 0;
 	//now parse the material file
 	while (fscanf(material, "%s", lineBuffer) != EOF)
 	{
@@ -176,9 +241,15 @@ bool ModelLoader::load(ID3D11Device* pDev, char* file_path)
 		{
 			fscanf_s(material, "%s", texture_file, (unsigned int)sizeof(texture_file));
 		}
+		if (strcmp(lineBuffer, "map_Bump") == 0)
+		{
+			_tModel.hasNormalMap = true;
+			_tModel.material.hasNormMap = 1;
+			fscanf_s(material, "%s", bump_file, (unsigned int)sizeof(bump_file));
+		}
 
 	}
-	fclose(material);
+	std::fclose(material);
 	//set flags for this model 
 	if (vnCount == 0)
 	{
@@ -187,11 +258,20 @@ bool ModelLoader::load(ID3D11Device* pDev, char* file_path)
 	//create the texture path
 	string texture_path = texture_file;
 	texture_path = "Assets//" + texture_path;
-	//load in texture for this model
+	//load in texture(s) for this model
 	if (!_tModel.loadTexture(pDev, texture_path))
 		return false;
+	if (_tModel.hasNormalMap)
+	{
+		string bump_path = bump_file;
+		bump_path = "Assets//" + bump_path;
+		if (!_tModel.loadTexture(pDev, bump_path))
+			return false;
+	}
 	//initialize the vertex buffer
 	_tModel.initializeBuffer(pDev);
+	//set the world matrix for this model
+	_tModel.setWorld(world);
 	//add the model to our model vector
 	this->_models.push_back(_tModel);
 
@@ -214,4 +294,9 @@ void ModelLoader::Release()
 	{
 		this->_models[i].Release();
 	}
+}
+
+void ModelLoader::update(XMMATRIX world, int index)
+{
+	this->_models[index].setWorld(world);
 }

@@ -33,7 +33,7 @@ bool Model::initializeBuffer(ID3D11Device * pDev)
 	if (FAILED(hr))
 		return false;
 	//prepare material const buffer
-	materialBufferDesc.Usage = D3D11_USAGE_IMMUTABLE; //this means it can only be read by the GPU and can not be accessed by the CPU. After initialization the data can not be changed. Which is OK for now
+	materialBufferDesc.Usage = D3D11_USAGE_DEFAULT; //this means it can only be read by the GPU and can not be accessed by the CPU. After initialization the data can not be changed. Which is OK for now
 	materialBufferDesc.ByteWidth = (unsigned int)(sizeof(Material));
 	materialBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	materialBufferDesc.CPUAccessFlags = 0;
@@ -63,10 +63,13 @@ Model::Model()
 {
 	NO_NORMALS = 0;
 	this->_pVerticesUvNormArr = nullptr;
-	this->_modelResource = nullptr;
+	this->_modelNormalResource = nullptr;
+	this->_modelTextureResource = nullptr;
 	this->_modelSamplerState = nullptr;
 	this->_modelTextureView = nullptr;
 	this->_pMaterialBuffer = nullptr;
+	this->hasNormalMap = false;
+	this->_modelNormalMap = nullptr;
 }
 
 
@@ -80,25 +83,38 @@ bool Model::loadTexture(ID3D11Device * pDev, string texture)
 	HRESULT hr;
 	wstring widestr = wstring(texture.begin(), texture.end()); //convert string object to wstring object to get the const wchar_t*
 
-	hr = CreateWICTextureFromFile(pDev, widestr.c_str(), &this->_modelResource, &this->_modelTextureView);
+	if (this->_modelTextureView == nullptr)
+		hr = CreateWICTextureFromFile(pDev, widestr.c_str(), &this->_modelTextureResource, &this->_modelTextureView);
+	else if (this->_modelTextureView != nullptr && this->hasNormalMap && this->_modelNormalMap == nullptr)
+	{
+		Microsoft::WRL::ComPtr<ID3D11Resource> res;
+		hr = CreateWICTextureFromFile(pDev, widestr.c_str(), &this->_modelNormalResource, &this->_modelNormalMap);
+	/*	Microsoft::WRL::ComPtr<ID3D11Texture2D> tex;
+		hr = res.As(&tex);
+		D3D11_TEXTURE2D_DESC desc;
+		tex->GetDesc(&desc);*/
+	}
+
 	if (FAILED(hr))
 		return false;
+	if (this->_modelSamplerState == nullptr)
+	{
+		//create the sampler
+		D3D11_SAMPLER_DESC sampDesc;
+		ZeroMemory(&sampDesc, sizeof(sampDesc));
+		sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+		sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+		sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+		sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+		sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+		sampDesc.MinLOD = 0;
+		sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
-	//create the sampler
-	D3D11_SAMPLER_DESC sampDesc;
-	ZeroMemory(&sampDesc, sizeof(sampDesc));
-	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-	sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-	sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-	sampDesc.MinLOD = 0;
-	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
-
-	//create the sampler state
-	hr = pDev->CreateSamplerState(&sampDesc, &this->_modelSamplerState);
-	if (FAILED(hr))
-		return false;
+		//create the sampler state
+		hr = pDev->CreateSamplerState(&sampDesc, &this->_modelSamplerState);
+		if (FAILED(hr))
+			return false;
+	}
 
 
 	return true;
@@ -111,7 +127,7 @@ ID3D11ShaderResourceView * Model::getTexture()
 
 ID3D11Resource * Model::getResource()
 {
-	return this->_modelResource;
+	return this->_modelTextureResource;
 }
 
 ID3D11SamplerState * Model::getSampler()
@@ -121,8 +137,8 @@ ID3D11SamplerState * Model::getSampler()
 
 VerticesUVsNormals * Model::getData()
 {
-	float x, y, z, u, v, a, b, c;
-	if (this->_pVerticesUvNormArr == nullptr)
+	float x, y, z, u, v, a, b, c, tx, ty, tz, bx, by, bz;
+	if (this->_pVerticesUvNormArr == nullptr && !this->hasNormalMap)
 	{
 		//create the array and put in data in the correct order
 		this->_pVerticesUvNormArr = new VerticesUVsNormals[this->vtxIndices.size()];
@@ -139,7 +155,15 @@ VerticesUVsNormals * Model::getData()
 			b = this->normals[this->normalIndices[i]].y;
 			c = this->normals[this->normalIndices[i]].z;
 
-			this->_pVerticesUvNormArr[i] = VerticesUVsNormals(x, y, z, u, v, a, b, c);
+			tx = this->vertices[this->vtxIndices[i]].tangent.x;
+			ty = this->vertices[this->vtxIndices[i]].tangent.y;
+			tz = this->vertices[this->vtxIndices[i]].tangent.z;
+
+			bx = this->vertices[this->vtxIndices[i]].binormal.x;
+			by = this->vertices[this->vtxIndices[i]].binormal.y;
+			bz = this->vertices[this->vtxIndices[i]].binormal.z;
+
+			this->_pVerticesUvNormArr[i] = VerticesUVsNormals(x, y, z, u, v, a, b, c, tx, ty, tz, bx, by, bx);
 		}
 	}
 
@@ -174,14 +198,52 @@ void Model::Release()
 	vertices.clear();
 	texCoords.clear();
 	normals.clear();
-	this->_modelResource->Release();
-	this->_modelResource = nullptr;
-	this->_modelTextureView->Release();
-	this->_modelTextureView = nullptr;
-	this->_modelSamplerState->Release();
-	this->_modelSamplerState = nullptr;
-	this->pVertexBuffer->Release();
-	this->pVertexBuffer = nullptr;
+	if (this->_modelTextureResource)
+	{
+		this->_modelTextureResource->Release();
+		this->_modelTextureResource = nullptr;
+	}
+	if (this->_modelNormalResource)
+	{
+		this->_modelNormalResource->Release();
+		this->_modelNormalResource = nullptr;
+	}
+	if (this->_modelTextureView)
+	{
+		this->_modelTextureView->Release();
+		this->_modelTextureView = nullptr;
+	}
+	if (this->_modelSamplerState)
+	{
+		this->_modelSamplerState->Release();
+		this->_modelSamplerState = nullptr;
+	}
+	if (this->pVertexBuffer)
+	{
+		this->pVertexBuffer->Release();
+		this->pVertexBuffer = nullptr;
+	}
+	if (this->_pMaterialBuffer)
+	{
+		this->_pMaterialBuffer->Release();
+		this->_pMaterialBuffer = nullptr;
+	}
+	if (this->_modelNormalMap)
+	{
+		this->_modelNormalMap->Release();
+		this->_modelNormalMap = nullptr;
+	}
 	if (this->_pVerticesUvNormArr)
 		delete[] this->_pVerticesUvNormArr;
+}
+
+XMMATRIX Model::
+getWorld()
+{
+	return this->world;
+}
+
+void Model::setWorld(XMMATRIX world)
+{
+	this->world = world;
 }

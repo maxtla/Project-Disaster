@@ -1,75 +1,16 @@
-#include <Windows.h>
-#include <d3d11.h>
-#include <d3dcompiler.h>
-#include <DirectXMath.h>
-#include <string>
-#include "ModelLoader.h"
-#include "DeferredShader.h"
-#include "DeferredBuffer.h"
-#include "LightShader.h"
+#include "Application.h"
 
-//collect comments for the linker to include libraries here
-#pragma comment (lib, "d3d11.lib")
-#pragma comment (lib, "d3dcompiler.lib")
-
-
-//collect namespace:s here
-using namespace DirectX;
-using namespace std;
-
-//collect macros here
-#define WIDTH 1280
-#define HEIGHT 720
+Application * m_App;
 
 //collect variables and globals here
 LPCTSTR WndClassName = L"wnd";
 HWND hwnd = NULL; //window handler
-	//directX pointers
-IDXGISwapChain* pSwapChain;
-ID3D11Device* pDev;
-ID3D11DeviceContext* pDevCon;
-ID3D11RenderTargetView* pRTV;
-ID3D11DepthStencilView* pDSV;
-ID3D11Texture2D* pDSBuffer;
-D3D11_VIEWPORT _viewPort;
-ID3D11DepthStencilState* pDepthStencilState;
-ID3D11DepthStencilState* pDepthDisabledStencilState;
-ID3D11RasterizerState* pRasterState;
-ID3D11RasterizerState* pRasterStateNoCulling;
-//own classes
-ModelLoader *pModelLoader;
-DeferredBuffer* pDeferredBuffer;
-DeferredShader* pDeferredShader;
-LightShader* pLightShader;
-
-//shoudl maybe create a light object class for this
-XMVECTOR lightPos = XMVectorSet(0.0f, 0.0f, -5.0f, 1.f);
-//maybe create a camera klass for this?
-XMMATRIX view = XMMatrixLookAtLH(XMVectorSet(0.0f, 0.0f, -3.0f, 1.0f), XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
-XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PI * 0.45f, ((float)WIDTH) / HEIGHT, 0.1f, 20.0f);
-XMMATRIX world = XMMatrixIdentity();
-//2D projection matrix
-XMMATRIX _2D_projection = XMMatrixOrthographicLH((float)WIDTH, (float)HEIGHT, 0.1f, 1000.0f);
-//erase this later
-//---
-float red = 0.0f;
-float green = 0.0f;
-float blue = 0.0f;
-int colormodr = 1;
-int colormodg = 1;
-int colormodb = 1;
-float rotationValue = 0;
-//---
 
 //collect function prototypes here
 bool InitializeWindow(HINSTANCE hInstance, int ShowWnd, int width, int height, bool windowed);
-int msgLoop();
 LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-bool initD3D11App(HINSTANCE hInstance);
-void releaseObjects(); //avoid memory leaks
-bool initScene();
-void updateScene();
-void renderScene();
+int msgLoop();
+
 
 
 //Main entry point
@@ -78,6 +19,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	LPSTR lpCmdLine,
 	int nShowCmd)
 {
+	m_App = new Application();
 	//initialize window
 	if (!InitializeWindow(hInstance, nShowCmd, WIDTH, HEIGHT, true))
 	{
@@ -86,19 +28,21 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		return 0;
 	}
 	//initialize Direct3D
-	if (!initD3D11App(hInstance))
+	if (!m_App->initApplication(hInstance, hwnd))
 	{
 		MessageBox(0, L"Direct3D initialization failed", L"ERROR", MB_OK);
 		return 0;
 	}
 	//inizialize scene
-	if (!initScene())
+	if (!m_App->initScenes(hInstance, hwnd))
 	{
 		MessageBox(0, L"Scene initialization failed", L"ERROR", MB_OK);
 		return 0;
 	}
 	msgLoop(); //the core of the program
-	releaseObjects();
+	m_App->Release();
+	delete m_App;
+
 	return 0;
 }
 
@@ -183,8 +127,8 @@ int msgLoop() {    //The message loop
 		else 
 		{    
 			//run game code here
-			updateScene();
-			renderScene();
+			m_App->update();
+			m_App->render();
 		}
 
 	}
@@ -223,296 +167,3 @@ LRESULT CALLBACK WndProc(HWND hwnd,    //Default windows procedure
 		lParam);
 }
 
-bool initD3D11App(HINSTANCE hInstance)
-{
-	HRESULT hr;
-	//buffer description
-	DXGI_MODE_DESC bufferDesc;
-	ZeroMemory(&bufferDesc, sizeof(DXGI_MODE_DESC));
-
-	bufferDesc.Width = WIDTH;
-	bufferDesc.Height = HEIGHT;
-	bufferDesc.RefreshRate.Numerator = 60;
-	bufferDesc.RefreshRate.Denominator = 1;
-	bufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	bufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
-	bufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-
-	//swapchain description
-	DXGI_SWAP_CHAIN_DESC swapChainDesc;
-	ZeroMemory(&swapChainDesc, sizeof(DXGI_SWAP_CHAIN_DESC));
-
-	swapChainDesc.BufferDesc = bufferDesc;
-	swapChainDesc.SampleDesc.Count = 4;
-	swapChainDesc.SampleDesc.Quality = 0;
-	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	swapChainDesc.BufferCount = 1;
-	swapChainDesc.OutputWindow = hwnd;
-	swapChainDesc.Windowed = TRUE;
-	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-
-	//create swapchain
-	hr = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, NULL, NULL, NULL,
-		D3D11_SDK_VERSION, &swapChainDesc, &pSwapChain, &pDev, NULL, &pDevCon);
-	if (FAILED(hr))
-	{
-		exit(-1);
-	}
-	//create backbuffer
-	ID3D11Texture2D* backBuffer;
-	hr = pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&backBuffer);
-	if (FAILED(hr))
-	{
-		exit(-1);
-	}
-	//create RTV
-	hr = pDev->CreateRenderTargetView(backBuffer, NULL, &pRTV);
-	backBuffer->Release();
-	if (FAILED(hr))
-	{
-		exit(-1);
-	}
-
-	//describe the DSBuffer (depth-stencil buffer)
-	D3D11_TEXTURE2D_DESC dpDesc;
-	ZeroMemory(&dpDesc, sizeof(D3D11_TEXTURE2D_DESC));
-
-	dpDesc.Width = WIDTH;
-	dpDesc.Height = HEIGHT;
-	dpDesc.MipLevels = 1;
-	dpDesc.ArraySize = 1;
-	dpDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	dpDesc.SampleDesc.Count = 4;
-	dpDesc.SampleDesc.Quality = 0;
-	dpDesc.Usage = D3D11_USAGE_DEFAULT;
-	dpDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-	dpDesc.CPUAccessFlags = 0;
-	dpDesc.MiscFlags = 0;
-
-	//create depth stecil view
-	pDev->CreateTexture2D(&dpDesc, NULL, &pDSBuffer);
-
-
-	//set up depth stencil desc
-	D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
-	ZeroMemory(&depthStencilDesc, sizeof(D3D11_DEPTH_STENCIL_DESC));
-	// Set up the description of the stencil state.
-	depthStencilDesc.DepthEnable = true;
-	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
-
-	depthStencilDesc.StencilEnable = true;
-	depthStencilDesc.StencilReadMask = 0xFF;
-	depthStencilDesc.StencilWriteMask = 0xFF;
-
-	// Stencil operations if pixel is front-facing.
-	depthStencilDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-	depthStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
-	depthStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-	depthStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-
-	// Stencil operations if pixel is back-facing.
-	depthStencilDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-	depthStencilDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
-	depthStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-	depthStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-
-	//create the normal depth stencil state
-	hr = pDev->CreateDepthStencilState(&depthStencilDesc, &pDepthStencilState);
-	if (FAILED(hr))
-		return false;
-	//Set the depth stencil state
-	pDevCon->OMSetDepthStencilState(pDepthStencilState, 1);
-	//initialize depth stencil view
-	D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc;
-	ZeroMemory(&depthStencilViewDesc, sizeof(D3D11_DEPTH_STENCIL_VIEW_DESC));
-	//prepare the depth stencil view desc
-	depthStencilViewDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
-	depthStencilViewDesc.Texture2D.MipSlice = 0;
-	//create depth stencil view
-	pDev->CreateDepthStencilView(pDSBuffer, &depthStencilViewDesc, &pDSV);
-	//set render target and bind depth-stencil view object
-	pDevCon->OMSetRenderTargets(1, &pRTV, pDSV); 
-	//create and set the raster description and raster state
-	D3D11_RASTERIZER_DESC rasterDesc;
-	ZeroMemory(&rasterDesc, sizeof(D3D11_RASTERIZER_DESC));
-	// Setup the raster description which will determine how and what polygons will be drawn.
-	rasterDesc.AntialiasedLineEnable = true;
-	rasterDesc.CullMode = D3D11_CULL_BACK;
-	rasterDesc.DepthBias = 0;
-	rasterDesc.DepthBiasClamp = 0.0f;
-	rasterDesc.DepthClipEnable = true;
-	rasterDesc.FillMode = D3D11_FILL_SOLID;
-	rasterDesc.FrontCounterClockwise = false;
-	rasterDesc.MultisampleEnable = true;
-	rasterDesc.ScissorEnable = false;
-	rasterDesc.SlopeScaledDepthBias = 0.0f;
-	//create rasterizer state
-	hr = pDev->CreateRasterizerState(&rasterDesc, &pRasterState);
-	if (FAILED(hr))
-		return false;
-	//set rasterizer state
-	pDevCon->RSSetState(pRasterState);
-	// Setup a raster description which turns off back face culling.
-	rasterDesc.AntialiasedLineEnable = false;
-	rasterDesc.CullMode = D3D11_CULL_NONE;
-	rasterDesc.DepthBias = 0;
-	rasterDesc.DepthBiasClamp = 0.0f;
-	rasterDesc.DepthClipEnable = true;
-	rasterDesc.FillMode = D3D11_FILL_SOLID;
-	rasterDesc.FrontCounterClockwise = false;
-	rasterDesc.MultisampleEnable = false;
-	rasterDesc.ScissorEnable = false;
-	rasterDesc.SlopeScaledDepthBias = 0.0f;
-	//create no culling rasterizer state
-	hr = pDev->CreateRasterizerState(&rasterDesc, &pRasterStateNoCulling);
-	if (FAILED(hr))
-		return false;
-
-	// Setup the viewport for rendering.
-	_viewPort.Width = (float)WIDTH;
-	_viewPort.Height = (float)HEIGHT;
-	_viewPort.MinDepth = 0.0f;
-	_viewPort.MaxDepth = 1.0f;
-	_viewPort.TopLeftX = 0.0f;
-	_viewPort.TopLeftY = 0.0f;
-
-	// Create the viewport.
-	pDevCon->RSSetViewports(1, &_viewPort);
-
-	//create the second depth stencil state for 2D rendering (Z buffer disabled)
-	D3D11_DEPTH_STENCIL_DESC depthDisabledStencilDesc;
-	ZeroMemory(&depthDisabledStencilDesc, sizeof(D3D11_DEPTH_STENCIL_DESC));
-	// Now create a second depth stencil state which turns off the Z buffer for 2D rendering.  The only difference is 
-	// that DepthEnable is set to false, all other parameters are the same as the other depth stencil state.
-	depthDisabledStencilDesc.DepthEnable = false;
-	depthDisabledStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-	depthDisabledStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
-	depthDisabledStencilDesc.StencilEnable = true;
-	depthDisabledStencilDesc.StencilReadMask = 0xFF;
-	depthDisabledStencilDesc.StencilWriteMask = 0xFF;
-	depthDisabledStencilDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-	depthDisabledStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
-	depthDisabledStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-	depthDisabledStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-	depthDisabledStencilDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-	depthDisabledStencilDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
-	depthDisabledStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-	depthDisabledStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-
-	hr = pDev->CreateDepthStencilState(&depthDisabledStencilDesc, &pDepthDisabledStencilState);
-	if (FAILED(hr))
-		return false;
-	
-	
-
-	return true;
-}
-
-void releaseObjects()
-{
-	pSwapChain->Release();
-	pDev->Release();
-	pDevCon->Release();
-	pDSV->Release();
-	pDSBuffer->Release();
-	pDeferredBuffer->Release();
-	pDeferredShader->Release();
-	pDepthStencilState->Release();
-	pDepthDisabledStencilState->Release();
-	pRasterState->Release();
-	pRasterStateNoCulling->Release();
-	pModelLoader->Release();
-	pLightShader->Release();
-}
-
-bool initScene()
-{
-	//here we have to create objects, load in shaders, set viewport, load models, textures, sounds, etc.
-	if (pModelLoader == nullptr)
-		pModelLoader = new ModelLoader();
-	//load in Cube.obj
-	if (!pModelLoader->load(pDev, "Assets//monkey.obj"))
-		return false;
-	//init deferred buffer
-	if (pDeferredBuffer == nullptr)
-		pDeferredBuffer = new DeferredBuffer();
-
-	if (!pDeferredBuffer->initialize(pDev, WIDTH, HEIGHT, 1, 0))
-		return false;
-	//init deferred shader
-	if (pDeferredShader == nullptr)
-		pDeferredShader = new DeferredShader();
-
-	if (!pDeferredShader->initialize(pDev, hwnd))
-		return false;
-	//init light shader
-	if (pLightShader == nullptr)
-		pLightShader = new LightShader();
-	
-	if (!pLightShader->initialize(pDev, hwnd))
-		return false;
-
-
-	return true;
-}
-
-void updateScene()
-{
-	//here we update objects ect. 
-	//for now we can just change the colors of the scene to show that it works
-	red += colormodr * 0.00005f;
-	green += colormodg * 0.00002f;
-	blue += colormodb * 0.00001f;
-
-	if (red >= 1.0f || red <= 0.0f)
-		colormodr *= -1;
-	if (green >= 1.0f || green <= 0.0f)
-		colormodg *= -1;
-	if (blue >= 1.0f || blue <= 0.0f)
-		colormodb *= -1;
-
-	//world =  XMMatrixMultiply( XMMatrixRotationY(rotationValue), XMMatrixRotationX(rotationValue - 0.00002f));
-	world = XMMatrixRotationY(rotationValue);
-	rotationValue += 0.00005f;
-}
-
-void renderScene()
-{
-	// ------ FIRST PASS -----
-	//first we must render the scene using the deferred shader
-	pDeferredBuffer->setRenderTargets(pDevCon);
-	pDeferredBuffer->clearRenderTargets(pDevCon, 0.0f, 0.0f, 0.0f, 1.0f);
-	for (int i = 0; i < pModelLoader->size(); i++)
-	{
-		pModelLoader->getModel(i).Render(pDevCon);
-		pDeferredShader->render(pDevCon, pModelLoader->getModel(i).getVertexCount(), world, view, projection, pModelLoader->getModel(i).getTexture(), pModelLoader->getModel(i).getSampler());
-	}
-
-
-
-	// ------ LIGHT PASS -----
-	//reset the render target back to the original backbuffer
-	pDevCon->OMSetRenderTargets(1, &pRTV, pDSV);
-	//reset the viewport
-	pDevCon->RSSetViewports(1, &_viewPort);
-	//clear scene for 2D rendering
-	float color[4] = { 0.f, 0.f, 0.f, 1.0f };
-	pDevCon->ClearRenderTargetView(pRTV, color);
-	pDevCon->ClearDepthStencilView(pDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
-	//setup scene for 2D rendering - disable depth
-	pDevCon->OMSetDepthStencilState(pDepthDisabledStencilState, 1);
-
-	for (int i = 0; i < pModelLoader->size(); i++)
-	{
-		pLightShader->Render(pDevCon, world, view, projection, pDeferredBuffer->getShaderResourceView(0), 
-							 pDeferredBuffer->getShaderResourceView(1), pDeferredBuffer->getShaderResourceView(2), 
-							 pModelLoader->getModel(i).getMaterialBuffer(), lightPos);
-	}
-	
-	//enable depth
-	pDevCon->OMSetDepthStencilState(pDepthStencilState, 1);
-
-	pSwapChain->Present(0, 0);
-}
