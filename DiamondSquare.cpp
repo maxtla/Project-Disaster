@@ -1,6 +1,5 @@
 #include "DiamondSquare.h"
 #include <stdlib.h>
-#include <time.h>
 
 float DiamondSquare::fRand()
 {
@@ -12,19 +11,27 @@ float DiamondSquare::fRand()
 
 float DiamondSquare::getValue(int x, int y)
 {
-	return this->diamondSquare[(x % width) + (y % height) * this->width];
+	if (x < this->width && x >= 0)
+	{
+		if (y < this->height && y >= 0)
+			return this->diamondSquare[x + (y * this->width)];
+		else
+			return 0.0f;
+	}
+	else
+		return 0.0f;
 }
 
 void DiamondSquare::setValue(int x, int y, float value)
 {
-	this->diamondSquare[(x % width) + (y % height) * width] = value;
+	this->diamondSquare[x + (y * this->width)] = value;
 }
 
-// x, y coordinates for the center of the square
+// x, y coordinates are the center of a square
 void DiamondSquare::diamondStep(int x, int y, int stepSize, float noise)
 {
 	int halfStep = stepSize / 2;
-	
+
 	float corner1 = this->getValue(x - halfStep, y - halfStep);
 	float corner2 = this->getValue(x + halfStep, y - halfStep);
 	float corner3 = this->getValue(x - halfStep, y + halfStep);
@@ -38,25 +45,30 @@ void DiamondSquare::diamondStep(int x, int y, int stepSize, float noise)
 // x, y coordinates are the center of a diamond
 void DiamondSquare::squareStep(int x, int y, int stepSize, float noise)
 {
-	int halfStep = stepSize / 2;
+	if (x < this->width && y < this->height)
+	{
+		int halfStep = stepSize / 2;
 
-	float corner1 = this->getValue(x - halfStep, y);
-	float corner2 = this->getValue(x + halfStep, y);
-	float corner3 = this->getValue(x, y - halfStep);
-	float corner4 = this->getValue(x, y + halfStep);
+		float corner1 = this->getValue(x - halfStep, y);
+		float corner2 = this->getValue(x + halfStep, y);
+		float corner3 = this->getValue(x, y - halfStep);
+		float corner4 = this->getValue(x, y + halfStep);
 
-	float diamondValue = ((corner1 + corner2 + corner3 + corner4) / 4) + noise;
+		float diamondValue = ((corner1 + corner2 + corner3 + corner4) / 4) + noise;
 
-	this->setValue(x, y, diamondValue);
+		this->setValue(x, y, diamondValue);
+	}
 }
 
 void DiamondSquare::diamondSquareAlgorithm(int stepSize, float noiseScale)
 {
 	int halfStep = stepSize / 2;
 
-	for (int y = halfStep; y < this->height + halfStep; y += stepSize)
-		for (int x = halfStep; x < this->width + halfStep; x += stepSize)
+	for (int y = halfStep; y < this->height; y += stepSize)
+		for (int x = halfStep; x < this->width; x += stepSize)
+		{
 			this->diamondStep(x, y, stepSize, this->fRand() * noiseScale);
+		}
 
 	for (int y = 0; y < this->height; y += stepSize)
 		for (int x = 0; x < this->width; x += stepSize)
@@ -79,7 +91,7 @@ DiamondSquare::~DiamondSquare()
 }
 
 /*
-	* Requires srand in main function to work properly
+* Requires srand in main function to work properly
 */
 float* DiamondSquare::createDiamondSquare(int width, int height, int initialStepSize, float noiseScaleValue)
 {

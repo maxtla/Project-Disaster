@@ -8,9 +8,9 @@ int main()
 {
 	srand(time(NULL));
 	float* heightMap = nullptr;
-	int width = 5;
+	int width = 17;
 	DiamondSquare dS;
-	heightMap = dS.createDiamondSquare(5, 5, 4, 1.0f);
+	heightMap = dS.createDiamondSquare(17, 17, 16, 1.0f);
 
 	for (int y = 0; y < width; y++)
 	{
