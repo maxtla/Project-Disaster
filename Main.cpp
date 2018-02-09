@@ -7,6 +7,7 @@
 #include "DeferredShader.h"
 #include "DeferredBuffer.h"
 #include "LightShader.h"
+#include"Movement.h"
 #include<dinput.h>
 #include<time.h>
 
@@ -44,6 +45,7 @@ ModelLoader *pModelLoader;
 DeferredBuffer* pDeferredBuffer;
 DeferredShader* pDeferredShader;
 LightShader* pLightShader;
+Movement* pMovement;
 
 //shoudl maybe create a light object class for this
 XMVECTOR lightPos = XMVectorSet(0.0f, 0.0f, -5.0f, 1.f);
@@ -53,14 +55,7 @@ XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PI * 0.45f, ((float)WIDTH) / H
 XMMATRIX world = XMMatrixIdentity();
 //2D projection matrix
 XMMATRIX _2D_projection = XMMatrixOrthographicLH((float)WIDTH, (float)HEIGHT, 0.1f, 1000.0f);
-//erase this later
-//---
-float red = 0.0f;
-float green = 0.0f;
-float blue = 0.0f;
-int colormodr = 1;
-int colormodg = 1;
-int colormodb = 1;
+
 float rotationValue = 0;
 //---
 
@@ -85,13 +80,9 @@ LPDIRECTINPUT8 DirectInput;
 float moveLeftRight = 0.0f;
 float moveBackForward = 0.0f;
 
-//time variables
-double countsPerSec = 0.0;
-_int64 counterStart = 0;
+
 double fTime = 0.0;
-_int64 fTimeOld = 0;
-int frameCount = 0;
-int fps = 0;
+
 
 
 //collect function prototypes here
@@ -132,11 +123,12 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		MessageBox(0, L"Scene initialization failed", L"ERROR", MB_OK);
 		return 0;
 	}
-	if (!initDirectInput(hInstance))
+	/*if (!initDirectInput(hInstance))
 	{
 		MessageBox(0, L"Direct3D initialization failed", L"ERROR", MB_OK);
 		return 0;
-	}
+	}*/
+	pMovement->initialize();
 	msgLoop(); //the core of the program
 	releaseObjects();
 	return 0;
@@ -229,7 +221,9 @@ int msgLoop() {    //The message loop
 			fTime = float(difftime(t2,t1)/1000);
 			//run game code here
 			t1 = t2;
-			detectKeys(fTime);
+			pMovement->detectKeys(fTime);
+			view = pMovement->getView();
+			//detectKeys(fTime);
 			updateScene();
 			renderScene();
 		}
