@@ -116,11 +116,13 @@ public:
 	vector<Normal> binormals;
 	Material material;
 	int NO_NORMALS;
-	bool hasNormalMap;
+	bool m_hasNormalMap;
 	//methods
 	bool loadTexture(ID3D11Device* pDev, string texture);
 	bool initializeBuffer(ID3D11Device* pDev);
 	ID3D11ShaderResourceView* getTexture();
+	ID3D11ShaderResourceView* getNormalMap();
+	bool hasNormalMap();
 	ID3D11Resource* getResource();
 	ID3D11SamplerState* getSampler();
 	VerticesUVsNormals* getData();

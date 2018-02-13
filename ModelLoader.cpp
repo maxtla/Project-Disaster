@@ -4,7 +4,7 @@
 
 
 
-void ModelLoader::_calculateTangentBinormal(Model & model, int v1, int v2, int v3, int vt1, int vt2, int vt3)
+void ModelLoader::_calculateTangentBinormal(Model & model, int v1, int v2, int v3, int vt1, int vt2, int vt3, int vn)
 {
 	XMFLOAT3 vtx1, vtx2, vtx3;
 	XMFLOAT2 uv1, uv2, uv3;
@@ -33,14 +33,20 @@ void ModelLoader::_calculateTangentBinormal(Model & model, int v1, int v2, int v
 	uv3.x = model.texCoords[vt3 - 1].u;
 	uv3.y = model.texCoords[vt3 - 1].v;
 
-	//load the data into XMVECTOR's so we can use DirectXMath functions for calculations
-	XMVECTOR vertex0, vertex1, vertex2, tex0, tex1, tex2;
+	//get normal
+	normal.x = model.normals[vn - 1].x;
+	normal.y = model.normals[vn - 1].y;
+	normal.z = model.normals[vn - 1].z;
+
+	//load the data into XMVECTOR's so we can use DirectXMath functions/operators for calculations
+	XMVECTOR vertex0, vertex1, vertex2, tex0, tex1, tex2, normal0;
 	vertex0 = XMLoadFloat3(&vtx1);
 	vertex1 = XMLoadFloat3(&vtx2);
 	vertex2 = XMLoadFloat3(&vtx3);
 	tex0 = XMLoadFloat2(&uv1);
 	tex1 = XMLoadFloat2(&uv2);
 	tex2 = XMLoadFloat2(&uv3);
+	normal0 = XMLoadFloat3(&normal);
 
 	//do the math
 	XMVECTOR e1 = vertex1 - vertex0;
@@ -48,18 +54,41 @@ void ModelLoader::_calculateTangentBinormal(Model & model, int v1, int v2, int v
 	XMVECTOR deltaUV1 = tex1 - tex0;
 	XMVECTOR deltaUV2 = tex2 - tex0;
 
-	float r = 1.0f / (deltaUV1.m128_f32[0] * deltaUV2.m128_f32[1] - deltaUV1.m128_f32[1] * deltaUV2.m128_f32[0]);
-	XMVECTOR tangent = (e1 * deltaUV2.m128_f32[1] - e2 * deltaUV1.m128_f32[1]) * r;
-	XMVECTOR binormal = (e2 * deltaUV1.m128_f32[0] - e1 * deltaUV2.m128_f32[0]) * r;
+	XMVECTOR tangent;
+	XMVECTOR binormal;
+
+	float r = (deltaUV1.m128_f32[0] * deltaUV2.m128_f32[1] - deltaUV1.m128_f32[1] * deltaUV2.m128_f32[0]);
+	if (fabsf(r) < 1e-6f)
+	{
+		// Equal to zero (almost) means the surface lies flat on its back
+		tangent = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
+		binormal = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+	}
+	else
+	{
+		r = 1.0f / r;
+		tangent = (e1 * deltaUV2.m128_f32[1] - e2 * deltaUV1.m128_f32[1]) * r;
+		binormal = (e2 * deltaUV1.m128_f32[0] - e1 * deltaUV2.m128_f32[0]) * r;
+
+		tangent = XMVector3Normalize(tangent);
+		binormal = XMVector3Normalize(binormal);
+	}
+
+	// As the bitangent equals to the cross product between the normal and the tangent running along the surface, calculate it
+	XMVECTOR bitangent = XMVector3Cross(normal0, tangent);
+
+	// Since we don't know if we must negate it, compare it with our computed one above
+	float crossinv = (XMVector3Dot(bitangent, binormal).m128_f32[0] < 0.0f) ? -1.0f : 1.0f;
+	bitangent *= crossinv;
 
 	//finally add the tangent and binormal to each vertex
 	XMStoreFloat3(&model.vertices[v1 - 1].tangent, tangent);
 	XMStoreFloat3(&model.vertices[v2 - 1].tangent, tangent);
 	XMStoreFloat3(&model.vertices[v3 - 1].tangent, tangent);
 
-	XMStoreFloat3(&model.vertices[v1 - 1].binormal, binormal);
-	XMStoreFloat3(&model.vertices[v2 - 1].binormal, binormal);
-	XMStoreFloat3(&model.vertices[v3 - 1].binormal, binormal);
+	XMStoreFloat3(&model.vertices[v1 - 1].binormal, bitangent);
+	XMStoreFloat3(&model.vertices[v2 - 1].binormal, bitangent);
+	XMStoreFloat3(&model.vertices[v3 - 1].binormal, bitangent);
 
 }
 
@@ -138,7 +167,7 @@ bool ModelLoader::load(ID3D11Device* pDev, char* file_path, XMMATRIX world)
 				else
 				{
 					//before we push back the indices, lets calculate the tangent and binormal for the vertices of this face
-					this->_calculateTangentBinormal(_tModel, v1, v2, v3, vt1, vt2, vt3);
+					this->_calculateTangentBinormal(_tModel, v1, v2, v3, vt1, vt2, vt3, vn1);
 
 					//now push back the indices
 					_tModel.vtxIndices.push_back(v3 - 1);
@@ -213,7 +242,6 @@ bool ModelLoader::load(ID3D11Device* pDev, char* file_path, XMMATRIX world)
 	//local variables
 	char texture_file[64];
 	char bump_file[64];
-	_tModel.material.hasNormMap = 0;
 	//now parse the material file
 	while (fscanf(material, "%s", lineBuffer) != EOF)
 	{
@@ -243,8 +271,8 @@ bool ModelLoader::load(ID3D11Device* pDev, char* file_path, XMMATRIX world)
 		}
 		if (strcmp(lineBuffer, "map_Bump") == 0)
 		{
-			_tModel.hasNormalMap = true;
 			_tModel.material.hasNormMap = 1;
+			_tModel.m_hasNormalMap = true;
 			fscanf_s(material, "%s", bump_file, (unsigned int)sizeof(bump_file));
 		}
 
@@ -261,7 +289,7 @@ bool ModelLoader::load(ID3D11Device* pDev, char* file_path, XMMATRIX world)
 	//load in texture(s) for this model
 	if (!_tModel.loadTexture(pDev, texture_path))
 		return false;
-	if (_tModel.hasNormalMap)
+	if (_tModel.m_hasNormalMap)
 	{
 		string bump_path = bump_file;
 		bump_path = "Assets//" + bump_path;

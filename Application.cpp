@@ -14,8 +14,11 @@ Application::Application()
 	this->pDepthDisabledStencilState = nullptr;
 	this->pRasterState = nullptr;
 
-	this->currentScene = nullptr;
+	this->inputHandler = nullptr;
+
 	this->pSceneDefRender = nullptr;
+	this->pSceneNormalMap = nullptr;
+	this->pSceneShadowMap = nullptr;
 }
 
 
@@ -144,7 +147,7 @@ bool Application::initApplication(HINSTANCE hInstance, HWND hwnd)
 	rasterDesc.DepthBiasClamp = 0.0f;
 	rasterDesc.DepthClipEnable = true;
 	rasterDesc.FillMode = D3D11_FILL_SOLID;
-	rasterDesc.FrontCounterClockwise = false;
+	rasterDesc.FrontCounterClockwise = true;
 	rasterDesc.MultisampleEnable = true;
 	rasterDesc.ScissorEnable = false;
 	rasterDesc.SlopeScaledDepthBias = 0.0f;
@@ -190,8 +193,12 @@ bool Application::initApplication(HINSTANCE hInstance, HWND hwnd)
 	if (FAILED(hr))
 		return false;
 
-	this->view = XMMatrixLookAtLH(XMVectorSet(0.0f, 1.0f, -3.0f, 1.0f), XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
-	this->projection = XMMatrixPerspectiveFovLH(XM_PI * 0.45f, ((float)WIDTH) / HEIGHT, 0.1f, 20.0f);
+	this->view = XMMatrixLookAtLH(XMVectorSet(0.0f, 0.0f, -3.0f, 1.0f), XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
+	this->projection = XMMatrixPerspectiveFovLH(XM_PI * 0.45f, ((float)WIDTH) / HEIGHT, 0.01f, 20.0f);
+
+	this->inputHandler = new Movement();
+	this->inputHandler->initialize();
+	this->start_time = clock();
 
 	return true;
 }
@@ -204,20 +211,66 @@ bool Application::initScenes(HINSTANCE hInstance, HWND hwnd)
 	if (!this->pSceneDefRender->initScene(this, hInstance, hwnd))
 		return false;
 
+	if (pSceneNormalMap == nullptr)
+		pSceneNormalMap = new SceneNormalMapping();
 
-	currentScene = pSceneDefRender;
+	if (!this->pSceneNormalMap->initScene(this, hInstance, hwnd))
+		return false;
+
+	if (pSceneShadowMap == nullptr)
+		pSceneShadowMap = new SceneShadowMapping();
+
+	if (!this->pSceneShadowMap->initScene(this, hInstance, hwnd))
+		return false;
+
+	this->currentScene = Scenes::SceneOne;
 
 	return true;
 }
 
 void Application::update()
 {
-	this->currentScene->updateScene();
+	//check for inputs
+	clock_t current_time = clock();
+	float time = float(difftime(current_time, start_time) / 1000);
+	start_time = current_time;
+
+	this->inputHandler->detectKeys(time);
+	//this->view = this->inputHandler->getView();
+
+	switch (this->currentScene)
+	{
+	case Scenes::SceneOne:
+		this->pSceneDefRender->updateScene();
+		break;
+	case Scenes::SceneTwo:
+		this->pSceneNormalMap->updateScene();
+		break;
+	case Scenes::SceneThree:
+		this->pSceneShadowMap->updateScene();
+		break;
+	default:
+		break;
+	}
+	
 }
 
 void Application::render()
 {
-	this->currentScene->renderScene(this);
+	switch (this->currentScene)
+	{
+	case Scenes::SceneOne:
+		this->pSceneDefRender->renderScene(this);
+		break;
+	case Scenes::SceneTwo:
+		this->pSceneNormalMap->renderScene(this);
+		break;
+	case Scenes::SceneThree:
+		this->pSceneShadowMap->renderScene(this);
+		break;
+	default:
+		break;
+	}
 }
 
 void Application::Release()
@@ -241,9 +294,23 @@ void Application::Release()
 	if (this->pRasterState)
 		this->pRasterState->Release();
 
-	this->currentScene = nullptr;
 	if (this->pSceneDefRender)
 		this->pSceneDefRender->Release();
+	if (this->pSceneNormalMap)
+		this->pSceneNormalMap->Release();
+	if (this->pSceneShadowMap)
+		this->pSceneShadowMap->Release();
+}
 
-
+void Application::switchScene()
+{
+	this->currentScene = (this->currentScene + 1) % NUMOFSCENES;
+	if (this->currentScene == 2)
+	{
+		this->view = XMMatrixLookAtLH(XMVectorSet(0.0f, 0.3f, -2.0f, 1.0f), XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
+	}
+	else
+	{
+		this->view = XMMatrixLookAtLH(XMVectorSet(0.0f, 0.0f, -3.0f, 1.0f), XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
+	}
 }

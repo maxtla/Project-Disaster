@@ -11,7 +11,7 @@ class ModelLoader
 {
 private:
 	vector<Model> _models;
-	void _calculateTangentBinormal(Model &model, int v1, int v2, int v3, int vt1, int vt2, int vt3);
+	void _calculateTangentBinormal(Model &model, int v1, int v2, int v3, int vt1, int vt2, int vt3, int vn);
 public:
 	ModelLoader();
 	~ModelLoader();

@@ -4,6 +4,7 @@ cbuffer Matrices : register(b0)
     matrix world;
     matrix view;
     matrix projection;
+    bool hasNormalMap;
 };
 
 //define structs for input and output
@@ -22,6 +23,9 @@ struct VS_OUT
     float4 w_pos : POSITION;
     float2 tex : TEXCOORD0;
     float4 normal : NORMAL;
+    float2 hasNormMap : TEXCOORD2;
+    float3 tangent : TANGENT;
+    float3 binormal : BINORMAL;
 };
 
 //shader code
@@ -43,6 +47,8 @@ VS_OUT deferred_vs_main(VS_IN input)
     output.normal = normalize(output.normal);
     //pass through the tex coord
     output.tex = input.tex;
+
+
 
     return output;
 }

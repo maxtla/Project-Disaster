@@ -61,6 +61,7 @@ bool Model::initializeBuffer(ID3D11Device * pDev)
 
 Model::Model()
 {
+	this->material.hasNormMap = 0;
 	NO_NORMALS = 0;
 	this->_pVerticesUvNormArr = nullptr;
 	this->_modelNormalResource = nullptr;
@@ -68,7 +69,7 @@ Model::Model()
 	this->_modelSamplerState = nullptr;
 	this->_modelTextureView = nullptr;
 	this->_pMaterialBuffer = nullptr;
-	this->hasNormalMap = false;
+	this->m_hasNormalMap = false;
 	this->_modelNormalMap = nullptr;
 }
 
@@ -85,7 +86,7 @@ bool Model::loadTexture(ID3D11Device * pDev, string texture)
 
 	if (this->_modelTextureView == nullptr)
 		hr = CreateWICTextureFromFile(pDev, widestr.c_str(), &this->_modelTextureResource, &this->_modelTextureView);
-	else if (this->_modelTextureView != nullptr && this->hasNormalMap && this->_modelNormalMap == nullptr)
+	else if (this->_modelTextureView != nullptr && this->m_hasNormalMap && this->_modelNormalMap == nullptr)
 	{
 		Microsoft::WRL::ComPtr<ID3D11Resource> res;
 		hr = CreateWICTextureFromFile(pDev, widestr.c_str(), &this->_modelNormalResource, &this->_modelNormalMap);
@@ -125,6 +126,16 @@ ID3D11ShaderResourceView * Model::getTexture()
 	return this->_modelTextureView;
 }
 
+ID3D11ShaderResourceView * Model::getNormalMap()
+{
+	return this->_modelNormalMap;
+}
+
+bool Model::hasNormalMap()
+{
+	return this->m_hasNormalMap;
+}
+
 ID3D11Resource * Model::getResource()
 {
 	return this->_modelTextureResource;
@@ -138,7 +149,7 @@ ID3D11SamplerState * Model::getSampler()
 VerticesUVsNormals * Model::getData()
 {
 	float x, y, z, u, v, a, b, c, tx, ty, tz, bx, by, bz;
-	if (this->_pVerticesUvNormArr == nullptr && !this->hasNormalMap)
+	if (this->_pVerticesUvNormArr == nullptr)
 	{
 		//create the array and put in data in the correct order
 		this->_pVerticesUvNormArr = new VerticesUVsNormals[this->vtxIndices.size()];

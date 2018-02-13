@@ -34,11 +34,11 @@ void DeferredShader::Release()
 	return;
 }
 
-bool DeferredShader::render(ID3D11DeviceContext * pDevCon, int index, XMMATRIX world, XMMATRIX view, XMMATRIX projection, ID3D11ShaderResourceView * pSRV, ID3D11SamplerState* texSampler)
+bool DeferredShader::render(ID3D11DeviceContext * pDevCon, int index, XMMATRIX world, XMMATRIX view, XMMATRIX projection, ID3D11ShaderResourceView * pTexture, ID3D11SamplerState* texSampler)
 {
 	bool result;
 	//set parameters used for rendering
-	result = this->setShaderParameters(pDevCon, world, view, projection, pSRV);
+	result = this->setShaderParameters(pDevCon, world, view, projection, pTexture);
 	if (!result)
 		return false;
 
@@ -253,7 +253,7 @@ void DeferredShader::outputErrorMessage(ID3D10Blob * blob, HWND hwnd, WCHAR * fi
 	return;
 }
 
-bool DeferredShader::setShaderParameters(ID3D11DeviceContext * pDevCon, XMMATRIX world, XMMATRIX view, XMMATRIX projection, ID3D11ShaderResourceView * pSRV)
+bool DeferredShader::setShaderParameters(ID3D11DeviceContext * pDevCon, XMMATRIX world, XMMATRIX view, XMMATRIX projection, ID3D11ShaderResourceView * pTexture)
 {
 	HRESULT hr;
 	D3D11_MAPPED_SUBRESOURCE mappedSubresource;
@@ -283,7 +283,7 @@ bool DeferredShader::setShaderParameters(ID3D11DeviceContext * pDevCon, XMMATRIX
 	//finally set the constant buffer in vertex shader
 	pDevCon->VSSetConstantBuffers(bufferNr, 1, &this->_pMatrixBuffer);
 	//also set the shader texture for the pixel shader
-	pDevCon->PSSetShaderResources(0, 1, &pSRV);
+	pDevCon->PSSetShaderResources(0, 1, &pTexture);
 
 	return true;
 }

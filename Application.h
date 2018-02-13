@@ -6,12 +6,26 @@
 #include <d3d11.h>
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
+#include "Movement.h"
+#include <time.h>
 #include "SceneDeferredRendering.h"
+#include "SceneNormalMapping.h"
+#include "SceneShadowMapping.h"
 
 //collect comments for the linker to include libraries here
 #pragma comment (lib, "d3d11.lib")
 #pragma comment (lib, "d3dcompiler.lib")
 
+enum Scenes 
+{
+	SceneOne,
+	SceneTwo,
+	SceneThree,
+};
+//Scenes
+// SceneOne = Deferred Rendering
+// SceneTwo = Normal Mapping
+#define NUMOFSCENES 3;
 
 //collect namespace:s here
 using namespace DirectX;
@@ -23,8 +37,10 @@ using namespace std;
 
 //if you add a new scene you have made it is very important to forward declare 
 //the class so the compiler knows we are using an interafce, to do this just write: class SceneClassName;
-class SceneInterface;
+class SceneNormalMapping;
 class SceneDeferredRendering;
+class SceneShadowMapping;
+
 class Application
 {
 public:
@@ -46,13 +62,18 @@ public:
 	ID3D11DepthStencilState* pDepthStencilState;
 	ID3D11DepthStencilState* pDepthDisabledStencilState;
 	ID3D11RasterizerState* pRasterState;
+	void switchScene();
 	//matrices
 	XMMATRIX view;
 	XMMATRIX projection;
 private:
+	Movement * inputHandler;
 	//Scene pointers
-	SceneInterface * currentScene;
+	SceneShadowMapping * pSceneShadowMap;
+	SceneNormalMapping * pSceneNormalMap;
 	SceneDeferredRendering * pSceneDefRender;
+	int currentScene;
+	clock_t start_time;
 };
 #endif // !_APPLICATION_H
 

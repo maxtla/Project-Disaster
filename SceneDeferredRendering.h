@@ -1,15 +1,19 @@
 #pragma once
-#include "SceneInterface.h"
+#ifndef _SCENEDEFERREDRENDERING_H
+#define _SCENEDEFERREDRENDERING_H
+
 #include "DeferredBuffer.h"
 #include "DeferredShader.h"
 #include "LightShader.h"
 #include "ModelLoader.h"
+#include "Application.h"
 
 #define ROTATIONSPEED_DEFERRED_RENDER_MODEL 100
 #define ROTATIONAL_INCREASE 0.0005f
 
-class SceneDeferredRendering :
-	public SceneInterface
+class Application;
+
+class SceneDeferredRendering 
 {
 public:
 	SceneDeferredRendering();
@@ -28,3 +32,4 @@ private:
 
 };
 
+#endif // !_SCENEDEFERREDRENDERING_H
