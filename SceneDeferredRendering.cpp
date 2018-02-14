@@ -23,7 +23,7 @@ bool SceneDeferredRendering::initScene(Application * pApp, HINSTANCE hInstance, 
 		this->pModelLoader = new ModelLoader();
 	//load in Cube.obj
 
-	if (!this->pModelLoader->load(pApp->pDev, "Assets//SoilCube.obj", XMMatrixMultiply(m_world, XMMatrixTranslation(0.0f, 2.0f, 0.0f))))
+	if (!this->pModelLoader->load(pApp->pDev, "Assets//monkey.obj", XMMatrixMultiply(m_world, XMMatrixTranslation(0.0f, -1.0f, 0.0f))))
 		return false;
 	m_world = XMMatrixMultiply(m_world, XMMatrixTranslation(0.0f, -1.0f, 0.0f));
 	if (!pModelLoader->load(pApp->pDev, "Assets//woodPlane.obj", m_world))
@@ -88,18 +88,21 @@ void SceneDeferredRendering::renderScene(Application * pApp)
 {
 	// ------ FIRST PASS -----
 	//first we must render the scene using the deferred shader
+	pApp->pDevCon->ClearState();
 	this->pDefBuff->setRenderTargets(pApp->pDevCon);
 	this->pDefBuff->clearRenderTargets(pApp->pDevCon, 0.0f, 0.0f, 0.0f, 1.0f);
 	for (int i = 0; i < this->pModelLoader->size(); i++)
 	{
-		pModelLoader->getModel(i).Render(pApp->pDevCon);
-		pDefShader->render(pApp->pDevCon, pModelLoader->getModel(i).getVertexCount(), pModelLoader->getModel(i).getWorld(),
-			pApp->view, pApp->projection, pModelLoader->getModel(i).getTexture(), pModelLoader->getModel(i).getSampler());
+		Model model = pModelLoader->getModel(i);
+		model.Render(pApp->pDevCon);
+		pDefShader->render(pApp->pDevCon,model.getVertexCount(), model.getWorld(),
+			pApp->view, pApp->projection, model.getTexture(), model.getSampler());
 	}
 
 
 
 	// ------ LIGHT PASS -----
+	pApp->pDevCon->ClearState();
 	//reset the render target back to the original backbuffer
 	pApp->pDevCon->OMSetRenderTargets(1, &pApp->pRTV, pApp->pDSV);
 	//reset the viewport
@@ -110,7 +113,7 @@ void SceneDeferredRendering::renderScene(Application * pApp)
 	pApp->pDevCon->ClearDepthStencilView(pApp->pDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
 	//setup scene for 2D rendering - disable depth
 	pApp->pDevCon->OMSetDepthStencilState(pApp->pDepthDisabledStencilState, 1);
-
+	
 	for (int i = 0; i < pModelLoader->size(); i++)
 	{
 		pLightShader->Render(pApp->pDevCon, XMMatrixIdentity(), pApp->view, pApp->projection, pDefBuff->getShaderResourceView(0),

@@ -19,7 +19,6 @@ cbuffer MaterialBuffer : register(b1)
     float diffuse;
     float specular;
     float specular_exponent;
-    bool hasNormalMap;
 };
 
 struct VS_OUT
@@ -39,7 +38,7 @@ float4 light_ps_main(VS_OUT input) : SV_TARGET
     normals = normalTexture.Sample(pointSampler, input.tex);
     positions = positionTexture.Sample(pointSampler, input.tex);
 
-    //Phong Rion model
+    //Phong Reflection model
     if (length(normals.xyz) > 0.0f)
     {
         float3 normal = normalize(normals.xyz);
@@ -52,6 +51,7 @@ float4 light_ps_main(VS_OUT input) : SV_TARGET
         float Is = specular * pow(saturate(dot(R, V)), specular_exponent);
 
         float4 I = saturate(Ia + (Id + Is) * lightColor);
+        
         colors = I * colors;
     }
 

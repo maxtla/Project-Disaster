@@ -119,7 +119,8 @@ int msgLoop() {    //The message loop
 		{
 			if (msg.message == WM_QUIT)    //if the message was WM_QUIT
 				break;    //Exit the message loop
-
+			if (msg.message == WM_KEYDOWN)
+				m_App->switchScene();
 			TranslateMessage(&msg);    //Translate the message
 			DispatchMessage(&msg);	   //Send the message to default windows procedure
 			
