@@ -240,6 +240,7 @@ void Application::update()
 	float time = float(difftime(current_time, start_time) / 1000);
 	start_time = current_time;
 
+	//TO DO se till att det kommer en timer så att det inte blir olika camera speed mellan scener
 	this->inputHandler->detectKeys(currentScene);
 	
 

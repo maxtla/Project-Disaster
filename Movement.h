@@ -4,7 +4,6 @@
 
 #include<d3d11.h>
 #include<DirectXMath.h>
-//#include<dinput.h>
 #include<time.h>
 #include<d3dcompiler.h>
 #include"DirectXHelpers.h"
@@ -38,23 +37,16 @@ private:
 	float camYaw = 0.0f;
 	float camPitch = 0.0f;
 	XMMATRIX camRotationMatrix;
-	float current = 0.0f;
-	Mouse::State startState;
+	
 	//input variables
 	unique_ptr<Keyboard> mKeyboard;
 	unique_ptr<Mouse> mMouse;
-	//DIMOUSESTATE mouseLastState;
-	
-	float moveLeftRight = 0.0f;
-	float moveBackForward = 0.0f;
-
+	Mouse::State startState;
 	
 public:
 	Movement();
 	~Movement();
-	//bool initDirectInput(HINSTANCE hInstance, HWND hwnd);
 	void initialize(HWND hwnd);
-	
 	void updateCamera(XMMATRIX &view);
 	void detectKeys(int &currentScene);
 };
