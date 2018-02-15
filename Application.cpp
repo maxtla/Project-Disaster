@@ -197,7 +197,7 @@ bool Application::initApplication(HINSTANCE hInstance, HWND hwnd)
 	this->projection = XMMatrixPerspectiveFovLH(XM_PI * 0.45f, ((float)WIDTH) / HEIGHT, 0.01f, 20.0f);
 
 	this->inputHandler = new Movement();
-	this->inputHandler->initialize();
+	this->inputHandler->initialize(hwnd);
 	this->start_time = clock();
 
 	return true;
@@ -228,6 +228,11 @@ bool Application::initScenes(HINSTANCE hInstance, HWND hwnd)
 	return true;
 }
 
+void Application::handleInput()
+{
+
+}
+
 void Application::update()
 {
 	//check for inputs
@@ -235,8 +240,8 @@ void Application::update()
 	float time = float(difftime(current_time, start_time) / 1000);
 	start_time = current_time;
 
-	this->inputHandler->detectKeys(time);
-	//this->view = this->inputHandler->getView();
+	this->inputHandler->detectKeys(currentScene);
+	
 
 	switch (this->currentScene)
 	{
@@ -257,6 +262,7 @@ void Application::update()
 
 void Application::render()
 {
+	this->inputHandler->updateCamera(view);
 	switch (this->currentScene)
 	{
 	case Scenes::SceneOne:

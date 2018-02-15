@@ -11,10 +11,17 @@
 #include"Mouse.h"
 #include"Keyboard.h"
 
-
+#define MOVESPEED 0.005f
 
 using namespace DirectX;
 using namespace std;
+
+enum Scenes
+{
+	SceneOne,
+	SceneTwo,
+	SceneThree,
+};
 
 class Movement
 {
@@ -27,28 +34,23 @@ private:
 	XMVECTOR DefaultRight = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
 	XMVECTOR camForward = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
 	XMVECTOR camRight = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
+	XMMATRIX camRotationMatrix;
 	float camYaw = 0.0f;
 	float camPitch = 0.0f;
-	XMMATRIX camRotationMatrix;
-	XMMATRIX view;
-
 	//input variables
 	unique_ptr<Keyboard> mKeyboard;
 	unique_ptr<Mouse> mMouse;
-	//DIMOUSESTATE mouseLastState;
-	
-	float moveLeftRight = 0.0f;
-	float moveBackForward = 0.0f;
+	Mouse::State startState;
+
 
 	
 public:
 	Movement();
 	~Movement();
-	//bool initDirectInput(HINSTANCE hInstance, HWND hwnd);
-	void initialize();
-	XMMATRIX getView();
-	void updateCamera();
-	void detectKeys(float time);
+	void initialize(HWND hwnd);
+	
+	void updateCamera(XMMATRIX &view);
+	void detectKeys(int &currentScene);
 };
 #endif // !MOVEMENT_H
 
