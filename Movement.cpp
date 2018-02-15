@@ -27,10 +27,6 @@ void Movement::initialize(HWND hwnd)
 
 void Movement::updateCamera(XMMATRIX &view)
 {
-	float y = sinf(camPitch);
-	float r = cosf(camPitch);
-	float z = r*cosf(camYaw);
-	float x = r*sinf(camPitch);
 
 	camRotationMatrix = XMMatrixRotationRollPitchYaw(camPitch, camYaw, 0);
 	camTarget = XMVector3TransformCoord(DefaultForward, camRotationMatrix);
@@ -46,7 +42,7 @@ void Movement::updateCamera(XMMATRIX &view)
 	moveLeftRight = 0.0f;
 	moveBackForward = 0.0f;
 
-	camTarget = camPosition + XMVectorSet(x, y, z, 0.0f);
+	camTarget = camPosition + camTarget;
 
 	view = XMMatrixLookAtLH(camPosition, camTarget, camUp);
 
@@ -99,8 +95,8 @@ void Movement::detectKeys(int &currentScene)
 
 		if (currState.x != startState.x || currState.y != startState.y)
 		{
-			camYaw -= float(startState.x) * 0.001f;
-			camPitch -= float(startState.y) * 0.001f;
+			camYaw += float(startState.x) * 0.001f;
+			camPitch += float(startState.y) * 0.001f;
 
 			startState = currState;
 		}
