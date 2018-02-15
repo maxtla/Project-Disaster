@@ -51,6 +51,10 @@ void Movement::updateCamera(XMMATRIX &view)
 void Movement::detectKeys(int &currentScene)
 {
 	auto kb = mKeyboard->GetState();
+
+	XMVECTOR posToTarget = camTarget - camPosition;
+	posToTarget = XMVector4Normalize(posToTarget);
+	XMVECTOR sideVector = XMVector4Normalize(XMVector3Cross(posToTarget, camUp));
 	//float speed = 0.005f;
 	if (kb.F1)
 	{
@@ -66,19 +70,19 @@ void Movement::detectKeys(int &currentScene)
 	}
 	if (kb.W)
 	{
-		moveBackForward += MOVESPEED;
+		camPosition += posToTarget * MOVESPEED;
 	}
 	if (kb.S)
 	{
-		moveBackForward -= MOVESPEED;
+		camPosition -= posToTarget*MOVESPEED;
 	}
 	if (kb.D)
 	{
-		moveLeftRight += MOVESPEED;
+		camPosition -= sideVector * MOVESPEED;
 	}
 	if (kb.A)
 	{
-		moveLeftRight -= MOVESPEED;
+		camPosition += sideVector * MOVESPEED;
 	}
 	
 
@@ -100,21 +104,7 @@ void Movement::detectKeys(int &currentScene)
 
 			startState = currState;
 		}
-		/*camPitch -= delta.y;
-		camYaw -= delta.x;
-
-		float limit = XM_PI / 2.0f - 0.01f;
-		camPitch = max(-limit, camPitch);
-		camPitch = min(+limit, camPitch);
-
-		if (camYaw > XM_PI)
-		{
-			camYaw -= XM_PI * 2.0f;
-		}
-		else if (camYaw < -XM_PI)
-		{
-			camYaw += XM_PI * 2.0f;
-		}*/
+	
 	}
 	mMouse->SetMode(currState.leftButton ? Mouse::MODE_RELATIVE : Mouse::MODE_ABSOLUTE);
 
