@@ -112,6 +112,7 @@ int msgLoop() {    //The message loop
 	MSG msg;    //Create a new message structure
 	ZeroMemory(&msg, sizeof(MSG));    //clear message structure to NULL
 
+
 	while (true)    //while there is a message
 	{
 		//if there was a windows message
@@ -119,8 +120,8 @@ int msgLoop() {    //The message loop
 		{
 			if (msg.message == WM_QUIT)    //if the message was WM_QUIT
 				break;    //Exit the message loop
-			if (msg.message == WM_KEYDOWN)
-				m_App->switchScene();
+			/*if (msg.message == WM_KEYDOWN)
+				m_App->switchScene();*/
 			TranslateMessage(&msg);    //Translate the message
 			DispatchMessage(&msg);	   //Send the message to default windows procedure
 			
@@ -146,6 +147,25 @@ LRESULT CALLBACK WndProc(HWND hwnd,    //Default windows procedure
 	switch (msg)    //Check message
 	{
 
+	case WM_ACTIVATEAPP:
+		Keyboard::ProcessMessage(msg, wParam, lParam);
+		Mouse::ProcessMessage(msg, wParam, lParam);
+		break;
+		case WM_INPUT:
+		case WM_MOUSEMOVE:
+		case WM_LBUTTONDOWN:
+		case WM_LBUTTONUP:
+		case WM_RBUTTONDOWN:
+		case WM_RBUTTONUP:
+		case WM_MBUTTONDOWN:
+		case WM_MBUTTONUP:
+		case WM_MOUSEWHEEL:
+		case WM_XBUTTONDOWN:
+		case WM_XBUTTONUP:
+		case WM_MOUSEHOVER:
+		     Mouse::ProcessMessage(msg, wParam, lParam);
+		     break;
+		
 	case WM_KEYDOWN:    //For a key down
 						//if escape key was pressed, display popup box
 		if (wParam == VK_ESCAPE) {
@@ -154,8 +174,13 @@ LRESULT CALLBACK WndProc(HWND hwnd,    //Default windows procedure
 
 				//Release the windows allocated memory  
 				DestroyWindow(hwnd);
+			return 0;
 		}
-		return 0;
+	case WM_SYSKEYDOWN:
+	case WM_KEYUP:
+	case WM_SYSKEYUP:
+		Keyboard::ProcessMessage(msg, wParam, lParam);
+		break;
 
 	case WM_DESTROY:    //if x button in top right was pressed
 		PostQuitMessage(0);

@@ -16,12 +16,7 @@
 #pragma comment (lib, "d3d11.lib")
 #pragma comment (lib, "d3dcompiler.lib")
 
-enum Scenes 
-{
-	SceneOne,
-	SceneTwo,
-	SceneThree,
-};
+
 //Scenes
 // SceneOne = Deferred Rendering
 // SceneTwo = Normal Mapping
@@ -48,6 +43,7 @@ public:
 	~Application();
 	bool initApplication(HINSTANCE, HWND);
 	bool initScenes(HINSTANCE, HWND);
+	void handleInput();
 	void update();
 	void render();
 	void Release();
