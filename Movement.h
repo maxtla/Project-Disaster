@@ -21,6 +21,7 @@ enum Scenes
 	SceneOne,
 	SceneTwo,
 	SceneThree,
+	SceneFour
 };
 
 class Movement

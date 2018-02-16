@@ -11,6 +11,7 @@
 #include "SceneDeferredRendering.h"
 #include "SceneNormalMapping.h"
 #include "SceneShadowMapping.h"
+#include "SceneHeightMap.h"
 
 //collect comments for the linker to include libraries here
 #pragma comment (lib, "d3d11.lib")
@@ -35,6 +36,7 @@ using namespace std;
 class SceneNormalMapping;
 class SceneDeferredRendering;
 class SceneShadowMapping;
+class SceneHeightMap;
 
 class Application
 {
@@ -68,6 +70,7 @@ private:
 	SceneShadowMapping * pSceneShadowMap;
 	SceneNormalMapping * pSceneNormalMap;
 	SceneDeferredRendering * pSceneDefRender;
+	SceneHeightMap * pSceneHeightMap;
 	int currentScene;
 	clock_t start_time;
 };

@@ -60,6 +60,10 @@ void Movement::detectKeys(int &currentScene)
 	{
 		currentScene = Scenes::SceneThree;
 	}
+	if (kb.F4)
+	{
+		currentScene = Scenes::SceneFour;
+	}
 	if (kb.W)
 	{
 		camPosition += posToTarget * MOVESPEED;

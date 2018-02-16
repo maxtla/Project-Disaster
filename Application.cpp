@@ -19,6 +19,7 @@ Application::Application()
 	this->pSceneDefRender = nullptr;
 	this->pSceneNormalMap = nullptr;
 	this->pSceneShadowMap = nullptr;
+	this->pSceneHeightMap = nullptr;
 }
 
 
@@ -194,7 +195,7 @@ bool Application::initApplication(HINSTANCE hInstance, HWND hwnd)
 		return false;
 
 	this->view = XMMatrixLookAtLH(XMVectorSet(0.0f, 0.0f, -3.0f, 1.0f), XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
-	this->projection = XMMatrixPerspectiveFovLH(XM_PI * 0.45f, ((float)WIDTH) / HEIGHT, 0.01f, 20.0f);
+	this->projection = XMMatrixPerspectiveFovLH(XM_PI * 0.45f, ((float)WIDTH) / HEIGHT, 0.01f, 500.0f);
 
 	this->inputHandler = new Movement();
 	this->inputHandler->initialize(hwnd);
@@ -221,6 +222,12 @@ bool Application::initScenes(HINSTANCE hInstance, HWND hwnd)
 		pSceneShadowMap = new SceneShadowMapping();
 
 	if (!this->pSceneShadowMap->initScene(this, hInstance, hwnd))
+		return false;
+
+	if (pSceneHeightMap == nullptr)
+		pSceneHeightMap = new SceneHeightMap();
+
+	if (!this->pSceneHeightMap->initScene(this, hInstance, hwnd))
 		return false;
 
 	this->currentScene = Scenes::SceneOne;
@@ -254,6 +261,9 @@ void Application::update()
 	case Scenes::SceneThree:
 		this->pSceneShadowMap->updateScene();
 		break;
+	case Scenes::SceneFour:
+		this->pSceneHeightMap->updateScene();
+		break;
 	default:
 		break;
 	}
@@ -273,6 +283,9 @@ void Application::render()
 		break;
 	case Scenes::SceneThree:
 		this->pSceneShadowMap->renderScene(this);
+		break;
+	case Scenes::SceneFour:
+		this->pSceneHeightMap->renderScene(this);
 		break;
 	default:
 		break;
