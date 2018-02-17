@@ -22,6 +22,7 @@ void Movement::initialize(HWND hwnd)
 
 	mMouse->SetWindow(hwnd);
 	this->startState = mMouse->GetState();
+	this->start_clock_movement = high_resolution_clock::now();
 }
 
 void Movement::updateCamera(XMMATRIX &view)
@@ -60,21 +61,34 @@ void Movement::detectKeys(int &currentScene)
 	{
 		currentScene = Scenes::SceneThree;
 	}
-	if (kb.W)
+	if (kb.F4)
 	{
-		camPosition += posToTarget * MOVESPEED;
+		currentScene = Scenes::SceneFour;
 	}
-	if (kb.S)
+
+	//movement keys
+	current_clock_movement = high_resolution_clock::now();
+	duration<double, std::milli> delta_time = this->current_clock_movement - this->start_clock_movement;
+	if (delta_time.count() > (1000 / FRAME_UPDATES_MOVEMENT))
 	{
-		camPosition -= posToTarget * MOVESPEED;
-	}
-	if (kb.D)
-	{
-		camPosition -= sideVector * MOVESPEED;
-	}
-	if (kb.A)
-	{
-		camPosition += sideVector * MOVESPEED;
+		
+		if (kb.W)
+		{
+			camPosition += posToTarget * MOVESPEED;
+		}
+		if (kb.S)
+		{
+			camPosition -= posToTarget * MOVESPEED;
+		}
+		if (kb.D)
+		{
+			camPosition -= sideVector * MOVESPEED;
+		}
+		if (kb.A)
+		{
+			camPosition += sideVector * MOVESPEED;
+		}
+		this->start_clock_movement = high_resolution_clock::now();
 	}
 	
 
@@ -84,8 +98,8 @@ void Movement::detectKeys(int &currentScene)
 	{	
 		if (currState.x != startState.x || currState.y != startState.y)
 		{
-			camYaw += float(startState.x) * 0.001f;
-			camPitch += float(startState.y) * 0.001f;
+			camYaw += float(startState.x) * CAMYAWPITCHOFFSET;
+			camPitch += float(startState.y) * CAMYAWPITCHOFFSET;
 
 			startState = currState;
 		}

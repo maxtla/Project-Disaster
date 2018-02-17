@@ -11,6 +11,9 @@ bool InitializeWindow(HINSTANCE hInstance, int ShowWnd, int width, int height, b
 LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 int msgLoop();
 
+//FPS counter handling
+high_resolution_clock::time_point start_time, current_time;
+int fps;
 
 
 //Main entry point
@@ -112,7 +115,8 @@ int msgLoop() {    //The message loop
 	MSG msg;    //Create a new message structure
 	ZeroMemory(&msg, sizeof(MSG));    //clear message structure to NULL
 
-
+	start_time = high_resolution_clock::now();
+	fps = 0;
 	while (true)    //while there is a message
 	{
 		//if there was a windows message
@@ -131,6 +135,16 @@ int msgLoop() {    //The message loop
 			//run game code here
 			m_App->update();
 			m_App->render();
+			fps++;
+			current_time = high_resolution_clock::now();
+			duration<double, std::milli> delta_time = current_time - start_time;
+			if (delta_time.count() >= 1000.0)
+			{
+				wstring frameCount = L"FPS: " + to_wstring(fps);
+				SetWindowText(hwnd, frameCount.c_str());
+				start_time = current_time;
+				fps = 0;
+			}
 		}
 
 	}

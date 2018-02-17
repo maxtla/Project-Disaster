@@ -19,6 +19,7 @@ Application::Application()
 	this->pSceneDefRender = nullptr;
 	this->pSceneNormalMap = nullptr;
 	this->pSceneShadowMap = nullptr;
+	this->pSceneHeightMap = nullptr;
 }
 
 
@@ -194,11 +195,14 @@ bool Application::initApplication(HINSTANCE hInstance, HWND hwnd)
 		return false;
 
 	this->view = XMMatrixLookAtLH(XMVectorSet(0.0f, 0.0f, -3.0f, 1.0f), XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
-	this->projection = XMMatrixPerspectiveFovLH(XM_PI * 0.45f, ((float)WIDTH) / HEIGHT, 0.01f, 20.0f);
+	this->projection = XMMatrixPerspectiveFovLH(XM_PI * 0.45f, ((float)WIDTH) / HEIGHT, 0.01f, 500.0f);
 
 	this->inputHandler = new Movement();
 	this->inputHandler->initialize(hwnd);
-	this->start_time = clock();
+
+	m_font = std::make_unique<SpriteFont>(pDev, L"myfile.spritefont");
+	m_spriteBatch = std::make_unique<SpriteBatch>(pDevCon);
+	m_fontPos = XMFLOAT2(350.f, 50.f);
 
 	return true;
 }
@@ -223,6 +227,12 @@ bool Application::initScenes(HINSTANCE hInstance, HWND hwnd)
 	if (!this->pSceneShadowMap->initScene(this, hInstance, hwnd))
 		return false;
 
+	if (pSceneHeightMap == nullptr)
+		pSceneHeightMap = new SceneHeightMap();
+
+	if (!this->pSceneHeightMap->initScene(this, hInstance, hwnd))
+		return false;
+
 	this->currentScene = Scenes::SceneOne;
 
 	return true;
@@ -235,12 +245,8 @@ void Application::handleInput()
 
 void Application::update()
 {
-	//check for inputs
-	clock_t current_time = clock();
-	float time = float(difftime(current_time, start_time) / 1000);
-	start_time = current_time;
-
-	this->inputHandler->detectKeys(currentScene);
+	
+	this->inputHandler->detectKeys(this->currentScene);
 	
 
 	switch (this->currentScene)
@@ -253,6 +259,9 @@ void Application::update()
 		break;
 	case Scenes::SceneThree:
 		this->pSceneShadowMap->updateScene();
+		break;
+	case Scenes::SceneFour:
+		this->pSceneHeightMap->updateScene();
 		break;
 	default:
 		break;
@@ -273,6 +282,9 @@ void Application::render()
 		break;
 	case Scenes::SceneThree:
 		this->pSceneShadowMap->renderScene(this);
+		break;
+	case Scenes::SceneFour:
+		this->pSceneHeightMap->renderScene(this);
 		break;
 	default:
 		break;
