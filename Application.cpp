@@ -199,7 +199,10 @@ bool Application::initApplication(HINSTANCE hInstance, HWND hwnd)
 
 	this->inputHandler = new Movement();
 	this->inputHandler->initialize(hwnd);
-	this->start_time = clock();
+
+	m_font = std::make_unique<SpriteFont>(pDev, L"myfile.spritefont");
+	m_spriteBatch = std::make_unique<SpriteBatch>(pDevCon);
+	m_fontPos = XMFLOAT2(350.f, 50.f);
 
 	return true;
 }
@@ -242,12 +245,8 @@ void Application::handleInput()
 
 void Application::update()
 {
-	//check for inputs
-	clock_t current_time = clock();
-	float time = float(difftime(current_time, start_time) / 1000);
-	start_time = current_time;
-
-	this->inputHandler->detectKeys(currentScene);
+	
+	this->inputHandler->detectKeys(this->currentScene);
 	
 
 	switch (this->currentScene)

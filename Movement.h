@@ -10,11 +10,15 @@
 #include"DirectXHelpers.h"
 #include"Mouse.h"
 #include"Keyboard.h"
+#include <chrono>
 
-#define MOVESPEED 0.005f
+#define MOVESPEED 0.1f
+#define CAMYAWPITCHOFFSET 0.001f
+#define FRAME_UPDATES_MOVEMENT 60
 
 using namespace DirectX;
 using namespace std;
+using namespace chrono;
 
 enum Scenes
 {
@@ -42,7 +46,7 @@ private:
 	unique_ptr<Keyboard> mKeyboard;
 	unique_ptr<Mouse> mMouse;
 	Mouse::State startState;
-
+	high_resolution_clock::time_point start_clock_movement, current_clock_movement;
 
 	
 public:

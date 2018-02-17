@@ -21,6 +21,7 @@ private:
 	void diamondStep(int x, int z, int stepSize, float noise);
 	void squareStep(int x, int z, int stepSize, float noise);
 	void diamondSquareAlgorithm(int stepSize, float noise);
+	void smoothValues(int filtersize); //filtersize must be 2^n + 1
 };
 #endif // !DIAMONDSQUARE_H
 

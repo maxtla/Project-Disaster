@@ -29,14 +29,15 @@ vector<float> DiamondSqaure::createDiamondSquare(int mapSize, int initStepSize, 
 		stepSize = stepSize / 2;
 		noiseScale = noiseScale / 2;
 	}
-
+	//add smoothing to the values and repeat X given times for further smoothing, 1 time is enough for now, but play with it for lulz
+	smoothValues(pow(2, 3) + 1);
 	return this->diamondSquare;
 }
 
 float DiamondSqaure::fRand()
 {
-	int min = -10;
-	int max = 15;
+	int min = -5;
+	int max = 60;
 	float randomNumber = (float)rand() / RAND_MAX;
 	return (min + randomNumber * (max - (min)));
 }
@@ -106,4 +107,36 @@ void DiamondSqaure::diamondSquareAlgorithm(int stepSize, float noise)
 			this->squareStep(x + halfStep, z, stepSize, this->fRand() * noise);
 			this->squareStep(x, z + halfStep, stepSize, this->fRand() * noise);
 		}
+}
+
+void DiamondSqaure::smoothValues(int filtersize)
+{
+	int count = 0;
+	float total = 0;
+
+	//loop through the values
+	for (int x = 0; x < mapSize - 1; x++)
+	{
+		for (int z = 0; z < mapSize - 1; z++)
+		{
+			count = 0;
+			total = 0.f;
+			for (int x0 = x - filtersize; x0 <= x + filtersize; x0++)
+			{
+				if (x0 < 0 || x0 > mapSize - 1) //check boundaries
+					continue;
+				for (int z0 = z - filtersize; z0 < z + filtersize; z0++)
+				{
+					if (z0 < 0 || z0 > mapSize - 1)
+						continue;
+
+					//add the contribution from the filter to the total for this point
+					total += diamondSquare[z0 + (x0 * mapSize)];
+					count++;
+				} //z0
+			} //x0
+		if (count != 0 && total != 0)
+			diamondSquare[z + (mapSize * x)] = total / (float)count;
+		} //z
+	} //x
 }

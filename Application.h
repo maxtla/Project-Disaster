@@ -7,11 +7,14 @@
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
 #include "Movement.h"
-#include <time.h>
+//scenes
 #include "SceneDeferredRendering.h"
 #include "SceneNormalMapping.h"
 #include "SceneShadowMapping.h"
 #include "SceneHeightMap.h"
+//directxtk 
+#include "SpriteFont.h"
+#include "SpriteBatch.h"
 
 //collect comments for the linker to include libraries here
 #pragma comment (lib, "d3d11.lib")
@@ -21,7 +24,8 @@
 //Scenes
 // SceneOne = Deferred Rendering
 // SceneTwo = Normal Mapping
-#define NUMOFSCENES 3;
+#define NUMOFSCENES 3
+
 
 //collect namespace:s here
 using namespace DirectX;
@@ -64,6 +68,10 @@ public:
 	//matrices
 	XMMATRIX view;
 	XMMATRIX projection;
+	//fonts
+	std::unique_ptr<DirectX::SpriteFont> m_font;
+	std::unique_ptr<DirectX::SpriteBatch> m_spriteBatch;
+	XMFLOAT2 m_fontPos;
 private:
 	Movement * inputHandler;
 	//Scene pointers
@@ -72,7 +80,6 @@ private:
 	SceneDeferredRendering * pSceneDefRender;
 	SceneHeightMap * pSceneHeightMap;
 	int currentScene;
-	clock_t start_time;
 };
 #endif // !_APPLICATION_H
 

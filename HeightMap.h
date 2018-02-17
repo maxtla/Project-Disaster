@@ -22,6 +22,7 @@ public:
 	bool initialize(ID3D11Device * pDev, HWND hwnd, int mapSize, float offset);
 	void Release();
 	void Render(ID3D11DeviceContext * pDevCon, XMMATRIX world, XMMATRIX view, XMMATRIX projection);
+	int getNrOfTriangles() const;
 
 private:
 	struct VertexTypeHeightMap

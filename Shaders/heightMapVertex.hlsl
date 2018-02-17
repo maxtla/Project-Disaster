@@ -38,6 +38,7 @@ VS_OUT heightmap_vs_main(VS_IN input)
     output.binormal = mul(output.binormal, (float3x3)world);
 
     output.normal = normalize(mul(input.normal, (float3x3)world));
+    output.tex = input.tex;
 
     return output;
 }

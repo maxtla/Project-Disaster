@@ -19,7 +19,7 @@ bool HeightMap::initialize(ID3D11Device * pDev, HWND hwnd, int mapSize, float of
 	if (!this->initShaders(pDev, hwnd, L"Shaders//heightMapVertex.hlsl", L"Shaders//heightMapPixel.hlsl"))
 		return false;
 
-	if (!this->initTextures(pDev, L"Assets//heightMapColors.tif", L"Assets//heightMapNormals.tif"))
+	if (!this->initTextures(pDev, L"Assets//cliff_colors.tif", L"Assets//cliff_normals.tif"))
 		return false;
 
 	if (!this->initRasterizer(pDev))
@@ -100,6 +100,11 @@ void HeightMap::Render(ID3D11DeviceContext * pDevCon, XMMATRIX world, XMMATRIX v
 {
 	this->setShaderParameters(pDevCon, world, view, projection);
 	pDevCon->DrawIndexed((unsigned int)this->m_indices.size(), 0, 0);
+}
+
+int HeightMap::getNrOfTriangles() const
+{
+	return (int)m_indices.size() / 3;
 }
 
 bool HeightMap::initShaders(ID3D11Device * pDev, HWND hwnd, WCHAR * vtx_path, WCHAR * px_path)
@@ -364,7 +369,7 @@ bool HeightMap::buildHeightMap(ID3D11Device * pDev)
 			int index = x + (m_mapSize * z);
 			v.vertex = XMFLOAT3((float)x * m_offset, m_heightValues[index], (float)z * m_offset);
 			//v.vertex = XMFLOAT3((float)x * m_offset, 0.0f, (float)z * m_offset);
-			v.tex = XMFLOAT2(0.0f, 0.0f); //need to calculate these later
+			v.tex = XMFLOAT2(0.0f, 0.0f); //need to set these later
 			v.normal = XMFLOAT3(0.0f, 0.0f, 0.0f); //calculate this later
 			v.tangent = v.binormal = v.normal; //also have to be calculated later
 
@@ -372,6 +377,8 @@ bool HeightMap::buildHeightMap(ID3D11Device * pDev)
 		}
 	}
 
+	float texUIndex = 0.f;
+	float texVIndex = 0.f;
 	//generate the indices
 	for (int z = 0; z < m_mapSize - 1; z++)
 	{
@@ -388,13 +395,13 @@ bool HeightMap::buildHeightMap(ID3D11Device * pDev)
 			v6 = (z + 1)*m_mapSize + x + 1;
 
 			//set the UV coordinats
-			m_vertices[v1].tex = XMFLOAT2(0.0f, 0.0f);
-			m_vertices[v2].tex = XMFLOAT2(1.0f, 1.0f);
-			m_vertices[v3].tex = XMFLOAT2(0.0f, 1.0f);
+			m_vertices[v1].tex = XMFLOAT2(texUIndex + 0.0f, texVIndex + 0.0f);
+			m_vertices[v2].tex = XMFLOAT2(texUIndex + 1.0f, texVIndex + 1.0f);
+			m_vertices[v3].tex = XMFLOAT2(texUIndex + 0.0f, texVIndex + 1.0f);
 
-			m_vertices[v4].tex = XMFLOAT2(1.0f, 1.0f);
-			m_vertices[v5].tex = XMFLOAT2(0.0f, 0.0f);
-			m_vertices[v6].tex = XMFLOAT2(1.0f, 0.0f);
+			m_vertices[v4].tex = XMFLOAT2(texUIndex + 1.0f, texVIndex + 1.0f);
+			m_vertices[v5].tex = XMFLOAT2(texUIndex + 0.0f, texVIndex + 0.0f);
+			m_vertices[v6].tex = XMFLOAT2(texUIndex + 1.0f, texVIndex + 0.0f);
 
 			//calculate the normal, tangent and binormal
 			calculateNormalTangentBinormal(v1, v2, v3);
@@ -408,7 +415,11 @@ bool HeightMap::buildHeightMap(ID3D11Device * pDev)
 			m_indices.push_back(v4);
 			m_indices.push_back(v5);
 			m_indices.push_back(v6);
+
+			texUIndex++;
 		}
+		texUIndex = 0.f;
+		texVIndex++;
 	}
 
 	D3D11_BUFFER_DESC vertexBufferDesc, indexBufferDesc;
