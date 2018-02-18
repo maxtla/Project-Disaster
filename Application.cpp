@@ -332,3 +332,24 @@ void Application::switchScene()
 		this->view = XMMatrixLookAtLH(XMVectorSet(0.0f, 0.0f, -3.0f, 1.0f), XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
 	}
 }
+
+void Application::textToScreen(wstring text, XMFLOAT2 position, XMFLOAT2 scaling)
+{
+	m_spriteBatch->Begin();
+	m_font->DrawString(m_spriteBatch.get(), text.c_str(), XMLoadFloat2(&position), Colors::White, 0.f, g_XMZero, XMLoadFloat2(&scaling));
+	m_spriteBatch->End();
+}
+
+void Application::camInfoToScreen(XMFLOAT2 position, XMFLOAT2 scaling)
+{
+	//prepare the wstrings for output
+	XMFLOAT3 pos, target;
+	XMStoreFloat3(&pos, this->inputHandler->getCamPos());
+	XMStoreFloat3(&target, this->inputHandler->getTarget());
+
+	wstring ws_pos = L"Camera position: X: " + to_wstring(pos.x) + L" Y: " + to_wstring(pos.y) + L" Z: " + to_wstring(pos.z);
+	wstring ws_target = L"Target position: X: " + to_wstring(target.x) + L" Y: " + to_wstring(target.y) + L" Z: " + to_wstring(target.z);
+
+	textToScreen(ws_pos, position, scaling);
+	textToScreen(ws_target, XMFLOAT2(position.x, position.y + 35.f), scaling);
+}

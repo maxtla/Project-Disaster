@@ -72,6 +72,8 @@ public:
 	std::unique_ptr<DirectX::SpriteFont> m_font;
 	std::unique_ptr<DirectX::SpriteBatch> m_spriteBatch;
 	XMFLOAT2 m_fontPos;
+	void textToScreen(wstring text, XMFLOAT2 position, XMFLOAT2 scaling);
+	void camInfoToScreen(XMFLOAT2 position, XMFLOAT2 scaling);
 private:
 	Movement * inputHandler;
 	//Scene pointers

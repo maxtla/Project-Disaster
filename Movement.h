@@ -56,6 +56,8 @@ public:
 	
 	void updateCamera(XMMATRIX &view);
 	void detectKeys(int &currentScene);
+	XMVECTOR getCamPos() const;
+	XMVECTOR getTarget() const;
 };
 #endif // !MOVEMENT_H
 

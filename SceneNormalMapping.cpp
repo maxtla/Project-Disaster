@@ -105,6 +105,10 @@ void SceneNormalMapping::renderScene(Application * pApp)
 			pApp->projection, model.getTexture(), model.getNormalMap(), true, model.getSampler(), model.getMaterialBuffer(), this->m_lightBuffer);
 	}
 
+	//text output
+	pApp->textToScreen(L"Scene 2", XMFLOAT2(50.f, 50.f), XMFLOAT2(0.5f, 0.5f));
+	pApp->camInfoToScreen(XMFLOAT2(50.f, 600.f), XMFLOAT2(0.4f, 0.4f));
+
 	pApp->pSwapChain->Present(0, 0);
 }
 
