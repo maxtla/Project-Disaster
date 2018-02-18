@@ -110,3 +110,13 @@ void Movement::detectKeys(int &currentScene)
 
 	return;
 }
+
+XMVECTOR Movement::getCamPos() const
+{
+	return this->camPosition;
+}
+
+XMVECTOR Movement::getTarget() const
+{
+	return this->camTarget;
+}

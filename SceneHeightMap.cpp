@@ -42,13 +42,9 @@ void SceneHeightMap::renderScene(Application * pApp)
 	m_heightMap->Render(pApp->pDevCon, XMMatrixIdentity(), pApp->view, pApp->projection);
 
 	//text output
-	pApp->m_spriteBatch->Begin();
-	wstring output = L"Triangles drawn: ";
-	int triangleCount = m_heightMap->getNrOfTriangles();
-	output += to_wstring(triangleCount);
-	XMVECTOR origin = pApp->m_font->MeasureString(output.c_str()) / 2.f;
-	pApp->m_font->DrawString(pApp->m_spriteBatch.get(), output.c_str(), XMLoadFloat2(&pApp->m_fontPos), Colors::White, 0.f, origin);
-	pApp->m_spriteBatch->End();
+	pApp->textToScreen(L"Scene 4", XMFLOAT2(50.f, 50.f), XMFLOAT2(0.5f, 0.5f));
+	pApp->textToScreen(L"Triangles: " + to_wstring(m_heightMap->getNrOfTriangles()), XMFLOAT2(50.f, 100.f), XMFLOAT2(0.45f, 0.45f));
+	pApp->camInfoToScreen(XMFLOAT2(50.f, 600.f), XMFLOAT2(0.4f, 0.4f));
 
 	//present the final frame
 	pApp->pSwapChain->Present(0, 0);

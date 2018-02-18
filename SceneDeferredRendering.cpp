@@ -124,6 +124,10 @@ void SceneDeferredRendering::renderScene(Application * pApp)
 	//enable depth
 	pApp->pDevCon->OMSetDepthStencilState(pApp->pDepthStencilState, 1);
 
+	//text output
+	pApp->textToScreen(L"Scene 1", XMFLOAT2(50.f, 50.f), XMFLOAT2(0.5f, 0.5f));
+	pApp->camInfoToScreen(XMFLOAT2(50.f, 600.f), XMFLOAT2(0.4f, 0.4f));
+
 	pApp->pSwapChain->Present(0, 0);
 }
 

@@ -97,6 +97,10 @@ void SceneShadowMapping::renderScene(Application * pApp)
 			m_light->getLightView(), m_light->getLightProjection(), model.getTexture(), m_depthShader->getDepthBufferSRV());
 	}
 
+	//text output
+	pApp->textToScreen(L"Scene 3", XMFLOAT2(50.f, 50.f), XMFLOAT2(0.5f, 0.5f));
+	pApp->camInfoToScreen(XMFLOAT2(50.f, 600.f), XMFLOAT2(0.4f, 0.4f));
+
 	pApp->pSwapChain->Present(0, 0);
 }
 
