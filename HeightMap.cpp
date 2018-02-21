@@ -4,6 +4,7 @@
 
 HeightMap::HeightMap()
 {
+
 }
 
 
@@ -38,11 +39,6 @@ void HeightMap::Release()
 	{
 		m_vertexBuffer->Release();
 		m_vertexBuffer = nullptr;
-	}
-	if (m_indexBuffer)
-	{
-		m_indexBuffer->Release();
-		m_indexBuffer = nullptr;
 	}
 	if (m_InputLayout)
 	{
@@ -90,21 +86,28 @@ void HeightMap::Release()
 		m_Sampler = nullptr;
 	}
 
-	m_heightValues.clear();
 	m_vertices.clear();
-	m_indices.clear();
-
 }
 
-void HeightMap::Render(ID3D11DeviceContext * pDevCon, XMMATRIX world, XMMATRIX view, XMMATRIX projection)
+void HeightMap::Render(Application * pApp, XMMATRIX world, XMMATRIX view, XMMATRIX projection)
 {
-	this->setShaderParameters(pDevCon, world, view, projection);
-	pDevCon->DrawIndexed((unsigned int)this->m_indices.size(), 0, 0);
+	//build the view frustum from the current camera view and projection
+	this->m_viewFrustum.buildFrustum(SCREEN_DEPTH, view, projection);
+	//first render pass is for the top down camera
+	pApp->pDevCon->RSSetViewports(1, &this->m_TopDownView);
+	constructViewProjectionMatrices(pApp);
+	this->setShaderParameters(pApp->pDevCon, world, this->m_top_down_view, this->m_top_down_projection);
+	this->m_quadTree.Render(this->m_viewFrustum, pApp->pDevCon);
+
+	//2nd render pass we render the scene from the actual camera
+	pApp->pDevCon->RSSetViewports(1, &this->m_Viewport);
+	this->setShaderParameters(pApp->pDevCon, world, view, projection);
+	this->m_quadTree.Render(this->m_viewFrustum, pApp->pDevCon);
 }
 
 int HeightMap::getNrOfTriangles() const
 {
-	return (int)m_indices.size() / 3;
+	return m_quadTree.getTriangleCount();
 }
 
 bool HeightMap::initShaders(ID3D11Device * pDev, HWND hwnd, WCHAR * vtx_path, WCHAR * px_path)
@@ -295,6 +298,13 @@ bool HeightMap::initRasterizer(ID3D11Device * pDev)
 	m_Viewport.TopLeftX = 0.f;
 	m_Viewport.TopLeftY = 0.f;
 
+	m_TopDownView.Height = (float)TOP_DOWN_HEIGHT;
+	m_TopDownView.Width = (float)TOP_DOWN_WIDTH;
+	m_TopDownView.TopLeftX = (float)TOP_DOWN_X;
+	m_TopDownView.TopLeftY = (float)TOP_DOWN_Y;
+	m_TopDownView.MaxDepth = 1.0f;
+	m_TopDownView.MinDepth = 0.0f;
+
 	return true;
 }
 
@@ -315,12 +325,12 @@ bool HeightMap::setShaderParameters(ID3D11DeviceContext * pDevCon, XMMATRIX worl
 
 	pDevCon->IASetInputLayout(this->m_InputLayout);
 	pDevCon->IASetVertexBuffers(0, 1, &this->m_vertexBuffer, &stride, &offset);
-	pDevCon->IASetIndexBuffer(this->m_indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	//pDevCon->IASetIndexBuffer(this->m_indexBuffer, DXGI_FORMAT_R32_UINT, 0);
 	pDevCon->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	//set the rasterizer stage and viewport
 	//pDevCon->RSSetState(this->m_rasterState);
-	pDevCon->RSSetViewports(1, &this->m_Viewport);
+	//pDevCon->RSSetViewports(1, &this->m_Viewport);
 
 	//transpose matrices since we have not specified anything in the compiler options
 	world = XMMatrixTranspose(world);
@@ -355,7 +365,7 @@ bool HeightMap::setShaderParameters(ID3D11DeviceContext * pDevCon, XMMATRIX worl
 void HeightMap::generateHeightValues()
 {
 	DiamondSqaure ds;
-	this->m_heightValues = ds.createDiamondSquare(this->m_mapSize, this->m_mapSize - 1, 1.0f);
+	this->m_heightValues = ds.createDiamondSquare(this->m_mapSize, this->m_mapSize, 1.0f);
 }
 
 bool HeightMap::buildHeightMap(ID3D11Device * pDev)
@@ -377,9 +387,10 @@ bool HeightMap::buildHeightMap(ID3D11Device * pDev)
 		}
 	}
 
+
 	float texUIndex = 0.f;
 	float texVIndex = 0.f;
-	//generate the indices
+	//calculate the UV coords, normal, tangent and binormals
 	for (int z = 0; z < m_mapSize - 1; z++)
 	{
 		for (int x = 0; x < m_mapSize - 1; x++) {
@@ -407,7 +418,6 @@ bool HeightMap::buildHeightMap(ID3D11Device * pDev)
 			calculateNormalTangentBinormal(v1, v2, v3);
 			calculateNormalTangentBinormal(v4, v5, v6);
 
-			//push back the indices
 			m_indices.push_back(v1);
 			m_indices.push_back(v2);
 			m_indices.push_back(v3);
@@ -422,8 +432,11 @@ bool HeightMap::buildHeightMap(ID3D11Device * pDev)
 		texVIndex++;
 	}
 
-	D3D11_BUFFER_DESC vertexBufferDesc, indexBufferDesc;
-	D3D11_SUBRESOURCE_DATA vertexData, indexData;
+	//build the quadtree
+	m_quadTree.initialize(m_indices, m_mapSize, m_offset, pDev);
+
+	D3D11_BUFFER_DESC vertexBufferDesc;
+	D3D11_SUBRESOURCE_DATA vertexData;
 	HRESULT hr;
 
 	// set up the description of the static vertex buffer
@@ -444,26 +457,11 @@ bool HeightMap::buildHeightMap(ID3D11Device * pDev)
 	if (FAILED(hr))
 		return false;
 
-	// set up the description of the static index buffer
-	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	indexBufferDesc.ByteWidth = sizeof(unsigned long) * (unsigned int)m_indices.size();
-	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	indexBufferDesc.CPUAccessFlags = 0;
-	indexBufferDesc.MiscFlags = 0;
-	indexBufferDesc.StructureByteStride = 0;
-
-	// assign the subresource structure a pointer t o the index data
-	indexData.pSysMem = m_indices.data();
-	indexData.SysMemPitch = 0;
-	indexData.SysMemSlicePitch = 0;
-
-	// create index buffer
-	hr = pDev->CreateBuffer(&indexBufferDesc, &indexData, &this->m_indexBuffer);
-	if (FAILED(hr))
-		return false;
+	//free up memory - do not clear the vertices vector yet, might be useful later
+	m_indices.clear();
+	m_heightValues.clear();
 
 	return true;
-
 }
 
 void HeightMap::calculateNormalTangentBinormal(int v1, int v2, int v3)
@@ -541,6 +539,23 @@ void HeightMap::calculateNormalTangentBinormal(int v1, int v2, int v3)
 	XMStoreFloat3(&m_vertices[v1].binormal, bitangent);
 	XMStoreFloat3(&m_vertices[v2].binormal, bitangent);
 	XMStoreFloat3(&m_vertices[v3].binormal, bitangent);
+}
+
+void HeightMap::constructViewProjectionMatrices(Application *pApp)
+{
+	//have a view on the center of the map
+	XMVECTOR pos = pApp->inputHandler->getCamPos();
+	XMFLOAT3 cam_pos, cam_target;
+	cam_pos.x = pos.m128_f32[0] + 0.001f;
+	cam_pos.y = 150.f; //for larger maps this needs to be bigger value
+	cam_pos.z = pos.m128_f32[2] - 0.001f;
+
+	cam_target.x = pos.m128_f32[0];
+	cam_target.y = pos.m128_f32[1];
+	cam_target.z = pos.m128_f32[2];
+
+	this->m_top_down_view = XMMatrixLookAtLH(XMLoadFloat3(&cam_pos), XMLoadFloat3(&cam_target), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
+	this->m_top_down_projection = XMMatrixPerspectiveFovLH(XM_PI * 0.45f, ((float)TOP_DOWN_WIDTH) / TOP_DOWN_HEIGHT, SCREEN_NEAR, TOP_DOWN_DEPTH);
 }
 
 void HeightMap::outputErrorMessage(ID3D10Blob * error, HWND hwnd, WCHAR * file)

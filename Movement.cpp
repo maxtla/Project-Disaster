@@ -23,6 +23,7 @@ void Movement::initialize(HWND hwnd)
 	mMouse->SetWindow(hwnd);
 	this->startState = mMouse->GetState();
 	this->start_clock_movement = high_resolution_clock::now();
+	this->rotation_clock_start = high_resolution_clock::now();
 }
 
 void Movement::updateCamera(XMMATRIX &view)
@@ -74,19 +75,47 @@ void Movement::detectKeys(int &currentScene)
 		
 		if (kb.W)
 		{
-			camPosition += posToTarget * MOVESPEED;
+			if (currentScene == Scenes::SceneFour)
+			{
+				camPosition += posToTarget * MOVESPEED_HEIGHTMAP;
+			}
+			else
+			{
+				camPosition += posToTarget * MOVESPEED;
+			}
 		}
 		if (kb.S)
 		{
-			camPosition -= posToTarget * MOVESPEED;
+			if (currentScene == Scenes::SceneFour)
+			{
+				camPosition -= posToTarget * MOVESPEED_HEIGHTMAP;
+			}
+			else
+			{
+				camPosition -= posToTarget * MOVESPEED;
+			}
 		}
 		if (kb.D)
 		{
-			camPosition -= sideVector * MOVESPEED;
+			if (currentScene == Scenes::SceneFour)
+			{
+				camPosition -= sideVector * MOVESPEED_HEIGHTMAP;
+			}
+			else
+			{
+				camPosition -= sideVector * MOVESPEED;
+			}
 		}
 		if (kb.A)
 		{
-			camPosition += sideVector * MOVESPEED;
+			if (currentScene == Scenes::SceneFour)
+			{
+				camPosition += sideVector * MOVESPEED_HEIGHTMAP;
+			}
+			else
+			{
+				camPosition += sideVector * MOVESPEED;
+			}
 		}
 		this->start_clock_movement = high_resolution_clock::now();
 	}
@@ -94,14 +123,19 @@ void Movement::detectKeys(int &currentScene)
 
 	auto currState = mMouse->GetState();
 
-	if (currState.positionMode == Mouse::MODE_RELATIVE)
-	{	
-		if (currState.x != startState.x || currState.y != startState.y)
-		{
-			camYaw += float(startState.x) * CAMYAWPITCHOFFSET;
-			camPitch += float(startState.y) * CAMYAWPITCHOFFSET;
+	rotation_clock_current = high_resolution_clock::now();
+	delta_time = rotation_clock_current - rotation_clock_start;
 
-			startState = currState;
+	if (delta_time.count() > (1000 / FRAME_UPDATES_MOVEMENT))
+	{
+		if (currState.positionMode == Mouse::MODE_RELATIVE)
+		{
+			if (currState.x != startState.x || currState.y != startState.y)
+			{
+				camYaw += float(startState.x) * CAMYAWPITCHOFFSET;
+				camPitch += float(startState.y) * CAMYAWPITCHOFFSET;
+				startState = currState;
+			}
 		}
 	}
 	mMouse->SetMode(currState.leftButton ? Mouse::MODE_RELATIVE : Mouse::MODE_ABSOLUTE);

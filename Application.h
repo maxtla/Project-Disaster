@@ -20,13 +20,6 @@
 #pragma comment (lib, "d3d11.lib")
 #pragma comment (lib, "d3dcompiler.lib")
 
-
-//Scenes
-// SceneOne = Deferred Rendering
-// SceneTwo = Normal Mapping
-#define NUMOFSCENES 3
-
-
 //collect namespace:s here
 using namespace DirectX;
 using namespace std;
@@ -35,8 +28,9 @@ using namespace std;
 #define WIDTH 1280
 #define HEIGHT 720
 
+
 //if you add a new scene you have made it is very important to forward declare 
-//the class so the compiler knows we are using an interafce, to do this just write: class SceneClassName;
+//to do this just write: class SceneClassName;
 class SceneNormalMapping;
 class SceneDeferredRendering;
 class SceneShadowMapping;
@@ -64,7 +58,6 @@ public:
 	ID3D11DepthStencilState* pDepthStencilState;
 	ID3D11DepthStencilState* pDepthDisabledStencilState;
 	ID3D11RasterizerState* pRasterState;
-	void switchScene();
 	//matrices
 	XMMATRIX view;
 	XMMATRIX projection;
@@ -74,8 +67,8 @@ public:
 	XMFLOAT2 m_fontPos;
 	void textToScreen(wstring text, XMFLOAT2 position, XMFLOAT2 scaling);
 	void camInfoToScreen(XMFLOAT2 position, XMFLOAT2 scaling);
-private:
 	Movement * inputHandler;
+private:
 	//Scene pointers
 	SceneShadowMapping * pSceneShadowMap;
 	SceneNormalMapping * pSceneNormalMap;

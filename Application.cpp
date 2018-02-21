@@ -195,7 +195,7 @@ bool Application::initApplication(HINSTANCE hInstance, HWND hwnd)
 		return false;
 
 	this->view = XMMatrixLookAtLH(XMVectorSet(0.0f, 0.0f, -3.0f, 1.0f), XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
-	this->projection = XMMatrixPerspectiveFovLH(XM_PI * 0.45f, ((float)WIDTH) / HEIGHT, 0.01f, 500.0f);
+	this->projection = XMMatrixPerspectiveFovLH(XM_PI * 0.45f, ((float)WIDTH) / HEIGHT, SCREEN_NEAR, SCREEN_DEPTH);
 
 	this->inputHandler = new Movement();
 	this->inputHandler->initialize(hwnd);
@@ -320,18 +320,6 @@ void Application::Release()
 		this->pSceneShadowMap->Release();
 }
 
-void Application::switchScene()
-{
-	this->currentScene = (this->currentScene + 1) % NUMOFSCENES;
-	if (this->currentScene == 2)
-	{
-		this->view = XMMatrixLookAtLH(XMVectorSet(0.0f, 0.3f, -2.0f, 1.0f), XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
-	}
-	else
-	{
-		this->view = XMMatrixLookAtLH(XMVectorSet(0.0f, 0.0f, -3.0f, 1.0f), XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
-	}
-}
 
 void Application::textToScreen(wstring text, XMFLOAT2 position, XMFLOAT2 scaling)
 {
