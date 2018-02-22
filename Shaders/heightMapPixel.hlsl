@@ -29,4 +29,5 @@ float4 heightmap_ps_main(VS_OUT input) : SV_TARGET
     float4 I = saturate(Id * lightColor);
 
     return saturate(colorTexture.Sample(wrapSampler, input.tex) * I);
+    //return float4(1.0f, 0.0f, 0.0f, 1.0f);
 }

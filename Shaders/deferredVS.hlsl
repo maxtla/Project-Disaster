@@ -4,7 +4,6 @@ cbuffer Matrices : register(b0)
     matrix world;
     matrix view;
     matrix projection;
-    bool hasNormalMap;
 };
 
 //define structs for input and output
@@ -23,7 +22,6 @@ struct VS_OUT
     float4 w_pos : POSITION;
     float2 tex : TEXCOORD0;
     float4 normal : NORMAL;
-    float2 hasNormMap : TEXCOORD2;
     float3 tangent : TANGENT;
     float3 binormal : BINORMAL;
 };
