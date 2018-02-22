@@ -10,7 +10,6 @@ struct VS_OUT
     float4 w_pos : POSITION;
     float2 tex : TEXCOORD0;
     float3 normal : NORMAL;
-    float2 hasNormMap : TEXCOORD2;
     float3 tangent : TANGENT;
     float3 binormal : BINORMAL;
 };
