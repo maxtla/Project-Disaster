@@ -30,14 +30,14 @@ vector<float> DiamondSqaure::createDiamondSquare(int mapSize, int initStepSize, 
 		noiseScale = noiseScale / 2;
 	}
 	//add smoothing to the values and repeat X given times for further smoothing, 1 time is enough for now, but play with it for lulz
-	smoothValues(pow(2, 3) + 1);
+	smoothValues((int)pow(2,2) + 1);
 	return this->diamondSquare;
 }
 
 float DiamondSqaure::fRand()
 {
-	int min = -5;
-	int max = 60;
+	int min = -15;
+	int max = 15;
 	float randomNumber = (float)rand() / RAND_MAX;
 	return (min + randomNumber * (max - (min)));
 }

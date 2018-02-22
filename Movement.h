@@ -13,6 +13,7 @@
 #include <chrono>
 
 #define MOVESPEED 0.1f
+#define MOVESPEED_HEIGHTMAP 1.0f;
 #define CAMYAWPITCHOFFSET 0.001f
 #define FRAME_UPDATES_MOVEMENT 60
 
@@ -47,6 +48,7 @@ private:
 	unique_ptr<Mouse> mMouse;
 	Mouse::State startState;
 	high_resolution_clock::time_point start_clock_movement, current_clock_movement;
+	high_resolution_clock::time_point rotation_clock_start, rotation_clock_current;
 
 	
 public:

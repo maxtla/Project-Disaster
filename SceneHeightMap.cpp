@@ -39,7 +39,7 @@ void SceneHeightMap::renderScene(Application * pApp)
 	pApp->pDevCon->ClearDepthStencilView(pApp->pDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 	//render map
-	m_heightMap->Render(pApp->pDevCon, XMMatrixIdentity(), pApp->view, pApp->projection);
+	m_heightMap->Render(pApp, XMMatrixIdentity(), pApp->view, pApp->projection);
 
 	//text output
 	pApp->textToScreen(L"Scene 4", XMFLOAT2(50.f, 50.f), XMFLOAT2(0.5f, 0.5f));

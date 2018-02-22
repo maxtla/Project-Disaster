@@ -6,6 +6,7 @@
 #include "Application.h"
 
 using namespace DirectX;
+class HeightMap;
 
 class SceneHeightMap
 {
