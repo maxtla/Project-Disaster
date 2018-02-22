@@ -89,6 +89,7 @@ void SceneDeferredRendering::renderScene(Application * pApp)
 	// ------ FIRST PASS -----
 	//first we must render the scene using the deferred shader
 	pApp->pDevCon->ClearState();
+	pApp->pDevCon->RSSetState(pApp->pRasterStateNoCulling);
 	this->pDefBuff->setRenderTargets(pApp->pDevCon);
 	this->pDefBuff->clearRenderTargets(pApp->pDevCon, 0.0f, 0.0f, 0.0f, 1.0f);
 	for (int i = 0; i < this->pModelLoader->size(); i++)
@@ -96,7 +97,7 @@ void SceneDeferredRendering::renderScene(Application * pApp)
 		Model model = pModelLoader->getModel(i);
 		model.Render(pApp->pDevCon);
 		pDefShader->render(pApp->pDevCon,model.getVertexCount(), model.getWorld(),
-			pApp->view, pApp->projection, model.getTexture(), model.getSampler());
+			pApp->view, pApp->projection, model.getTexture(), model.getSampler(), pApp->inputHandler->getCamPos());
 	}
 
 

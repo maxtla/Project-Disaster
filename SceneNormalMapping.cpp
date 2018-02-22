@@ -92,6 +92,7 @@ void SceneNormalMapping::renderScene(Application * pApp)
 	pApp->pDevCon->OMSetRenderTargets(1, &pApp->pRTV, pApp->pDSV);
 	//set the viewport
 	pApp->pDevCon->RSSetViewports(1, &pApp->_viewPort);
+	pApp->pDevCon->RSSetState(pApp->pRasterState);
 	//clear scene
 	float color[4] = { 0.f, 0.f, 0.f, 1.0f };
 	pApp->pDevCon->ClearRenderTargetView(pApp->pRTV, color);

@@ -21,7 +21,7 @@ bool DeferredShader::initialize(ID3D11Device * pDev, HWND hwnd)
 {
 	bool result;
 	//load in the vertex and pixel shader files
-	result = this->initializeShader(pDev, hwnd, L"Shaders//deferredVS.hlsl", L"Shaders//deferredPS.hlsl");
+	result = this->initializeShader(pDev, hwnd, L"Shaders//deferredVS.hlsl", L"Shaders//deferredGS.hlsl" ,L"Shaders//deferredPS.hlsl");
 	if (!result)
 		return false;
 
@@ -34,11 +34,11 @@ void DeferredShader::Release()
 	return;
 }
 
-bool DeferredShader::render(ID3D11DeviceContext * pDevCon, int index, XMMATRIX world, XMMATRIX view, XMMATRIX projection, ID3D11ShaderResourceView * pTexture, ID3D11SamplerState* texSampler)
+bool DeferredShader::render(ID3D11DeviceContext * pDevCon, int index, XMMATRIX world, XMMATRIX view, XMMATRIX projection, ID3D11ShaderResourceView * pTexture, ID3D11SamplerState* texSampler, XMVECTOR camPos)
 {
 	bool result;
 	//set parameters used for rendering
-	result = this->setShaderParameters(pDevCon, world, view, projection, pTexture);
+	result = this->setShaderParameters(pDevCon, world, view, projection, pTexture, camPos);
 	if (!result)
 		return false;
 
@@ -47,17 +47,18 @@ bool DeferredShader::render(ID3D11DeviceContext * pDevCon, int index, XMMATRIX w
 	return true;
 }
 
-bool DeferredShader::initializeShader(ID3D11Device * pDev, HWND hwnd, WCHAR * vertexFile, WCHAR * fragmentFile)
+bool DeferredShader::initializeShader(ID3D11Device * pDev, HWND hwnd, WCHAR * vertexFile, WCHAR* geometryFile, WCHAR * fragmentFile)
 {
 	//collect local members here
 	HRESULT hr;
 	ID3D10Blob* errorMsg = NULL;
 	ID3D10Blob* vertexShaderBuffer = NULL;
 	ID3D10Blob* pixelShaderBuffer = NULL;
+	ID3D10Blob* geometryShaderBuffer = NULL;
 	D3D11_INPUT_ELEMENT_DESC layoutDescriptions[5];
 	unsigned int numOfElements;
 	D3D11_SAMPLER_DESC samplerDesc;
-	D3D11_BUFFER_DESC matrixBufferDesc;
+	D3D11_BUFFER_DESC matrixBufferDesc, geometryBufferDesc;
 
 	//compile vertex shader from code file
 	hr = D3DCompileFromFile(vertexFile,
@@ -78,6 +79,26 @@ bool DeferredShader::initializeShader(ID3D11Device * pDev, HWND hwnd, WCHAR * ve
 		}
 		return false;
 	}
+	//compile geometry shader from code file
+	hr = D3DCompileFromFile(geometryFile,
+		nullptr,
+		nullptr,
+		"deferred_gs_main",
+		"gs_5_0",
+		D3D10_SHADER_ENABLE_STRICTNESS,
+		0,
+		&geometryShaderBuffer,
+		&errorMsg);
+
+	if (FAILED(hr))
+	{
+		if (errorMsg)
+		{
+			this->outputErrorMessage(errorMsg, hwnd, geometryFile);
+		}
+		return false;
+	}
+
 
 	//compile fragemnt shader from code file
 	hr = D3DCompileFromFile(fragmentFile,
@@ -101,6 +122,10 @@ bool DeferredShader::initializeShader(ID3D11Device * pDev, HWND hwnd, WCHAR * ve
 
 	//create vertex and fragment shader from the buffers
 	hr = pDev->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, &this->_pVertexShader);
+	if (FAILED(hr))
+		return false;
+
+	hr = pDev->CreateGeometryShader(geometryShaderBuffer->GetBufferPointer(), geometryShaderBuffer->GetBufferSize(), NULL, &this->_pGeometryShader);
 	if (FAILED(hr))
 		return false;
 
@@ -194,6 +219,18 @@ bool DeferredShader::initializeShader(ID3D11Device * pDev, HWND hwnd, WCHAR * ve
 	if (FAILED(hr))
 		return false;
 
+	//prepare the description of the matrix buffer and create the matrix buffer
+	geometryBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	geometryBufferDesc.ByteWidth = sizeof(GeometryBufferStruct);
+	geometryBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	geometryBufferDesc.CPUAccessFlags = 0;
+	geometryBufferDesc.MiscFlags = 0;
+	geometryBufferDesc.StructureByteStride = 0;
+
+	hr = pDev->CreateBuffer(&geometryBufferDesc, NULL, &this->_pGeometryBuffer);
+	if (FAILED(hr))
+		return false;
+
 	//now we are finally done here
 	return true;
 }
@@ -253,12 +290,13 @@ void DeferredShader::outputErrorMessage(ID3D10Blob * blob, HWND hwnd, WCHAR * fi
 	return;
 }
 
-bool DeferredShader::setShaderParameters(ID3D11DeviceContext * pDevCon, XMMATRIX world, XMMATRIX view, XMMATRIX projection, ID3D11ShaderResourceView * pTexture)
+bool DeferredShader::setShaderParameters(ID3D11DeviceContext * pDevCon, XMMATRIX world, XMMATRIX view, XMMATRIX projection, ID3D11ShaderResourceView * pTexture, XMVECTOR camPos)
 {
 	HRESULT hr;
 	D3D11_MAPPED_SUBRESOURCE mappedSubresource;
 	unsigned int bufferNr;
 	MatrixBufferStruct* dataPtr;
+	GeometryBufferStruct geoDataPtr;
 
 	//transpose matrices since we have not specified anything in the compiler options
 	world = XMMatrixTranspose(world);
@@ -282,6 +320,10 @@ bool DeferredShader::setShaderParameters(ID3D11DeviceContext * pDevCon, XMMATRIX
 	bufferNr = 0;
 	//finally set the constant buffer in vertex shader
 	pDevCon->VSSetConstantBuffers(bufferNr, 1, &this->_pMatrixBuffer);
+	pDevCon->GSSetConstantBuffers(0, 1, &this->_pGeometryBuffer);
+	//update the constant buffer for geometry shader
+	geoDataPtr.camPos = camPos;
+	pDevCon->UpdateSubresource(this->_pGeometryBuffer, 0, nullptr, &geoDataPtr, 0, 0);
 	//also set the shader texture for the pixel shader
 	pDevCon->PSSetShaderResources(0, 1, &pTexture);
 
@@ -292,8 +334,9 @@ void DeferredShader::renderShader(ID3D11DeviceContext * pDevCon, int iCount, ID3
 {
 	//set vertex input layout
 	pDevCon->IASetInputLayout(this->_pInputLayout);
-	//set the vertex and pixel shader
+	//set the vertex, geometry and pixel shader
 	pDevCon->VSSetShader(this->_pVertexShader, NULL, 0);
+	pDevCon->GSSetShader(this->_pGeometryShader, NULL, 0);
 	pDevCon->PSSetShader(this->_pPixelShader, NULL, 0);
 	//set sampler states 
 	pDevCon->PSSetSamplers(0, 1, &texSampler);

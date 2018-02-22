@@ -60,6 +60,7 @@ public:
 	void detectKeys(int &currentScene);
 	XMVECTOR getCamPos() const;
 	XMVECTOR getTarget() const;
+	XMVECTOR getTargetToCam() const;
 };
 #endif // !MOVEMENT_H
 
