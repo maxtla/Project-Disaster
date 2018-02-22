@@ -58,6 +58,7 @@ public:
 	ID3D11DepthStencilState* pDepthStencilState;
 	ID3D11DepthStencilState* pDepthDisabledStencilState;
 	ID3D11RasterizerState* pRasterState;
+	ID3D11RasterizerState* pRasterStateNoCulling;
 	//matrices
 	XMMATRIX view;
 	XMMATRIX projection;

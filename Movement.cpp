@@ -154,3 +154,8 @@ XMVECTOR Movement::getTarget() const
 {
 	return this->camTarget;
 }
+
+XMVECTOR Movement::getTargetToCam() const
+{
+	return camPosition - camTarget;
+}

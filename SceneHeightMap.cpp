@@ -33,6 +33,7 @@ void SceneHeightMap::renderScene(Application * pApp)
 	//clear states
 	pApp->pDevCon->ClearState();
 	pApp->pDevCon->OMSetRenderTargets(1, &pApp->pRTV, pApp->pDSV);
+	pApp->pDevCon->RSSetState(pApp->pRasterState);
 
 	float color[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	pApp->pDevCon->ClearRenderTargetView(pApp->pRTV, color);

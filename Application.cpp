@@ -148,7 +148,7 @@ bool Application::initApplication(HINSTANCE hInstance, HWND hwnd)
 	rasterDesc.DepthBiasClamp = 0.0f;
 	rasterDesc.DepthClipEnable = true;
 	rasterDesc.FillMode = D3D11_FILL_SOLID;
-	rasterDesc.FrontCounterClockwise = true;
+	rasterDesc.FrontCounterClockwise = false;
 	rasterDesc.MultisampleEnable = true;
 	rasterDesc.ScissorEnable = false;
 	rasterDesc.SlopeScaledDepthBias = 0.0f;
@@ -156,8 +156,23 @@ bool Application::initApplication(HINSTANCE hInstance, HWND hwnd)
 	hr = pDev->CreateRasterizerState(&rasterDesc, &pRasterState);
 	if (FAILED(hr))
 		return false;
-	//set rasterizer state
-	pDevCon->RSSetState(pRasterState);
+
+	ZeroMemory(&rasterDesc, sizeof(D3D11_RASTERIZER_DESC));
+	// Setup the raster description for no culling
+	rasterDesc.AntialiasedLineEnable = true;
+	rasterDesc.CullMode = D3D11_CULL_NONE;
+	rasterDesc.DepthBias = 0;
+	rasterDesc.DepthBiasClamp = 0.0f;
+	rasterDesc.DepthClipEnable = true;
+	rasterDesc.FillMode = D3D11_FILL_SOLID;
+	rasterDesc.FrontCounterClockwise = false;
+	rasterDesc.MultisampleEnable = true;
+	rasterDesc.ScissorEnable = false;
+	rasterDesc.SlopeScaledDepthBias = 0.0f;
+	//create rasterizer state
+	hr = pDev->CreateRasterizerState(&rasterDesc, &pRasterStateNoCulling);
+	if (FAILED(hr))
+		return false;
 
 	// Setup the viewport for rendering.
 	_viewPort.Width = (float)WIDTH;
