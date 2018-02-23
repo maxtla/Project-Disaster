@@ -19,6 +19,7 @@
 #define TOP_DOWN_HEIGHT 300
 #define TOP_DOWN_X 980
 #define TOP_DOWN_Y 0
+#define UPDATE_CALL_TIME 30.0
 
 using namespace DirectX;
 using namespace std;
@@ -31,7 +32,8 @@ public:
 	HeightMap();
 	~HeightMap();
 
-	bool initialize(ID3D11Device * pDev, HWND hwnd, int mapSize, float offset);
+	bool initialize(Application *pApp, HWND hwnd, int mapSize, float offset);
+	void update();
 	void Release();
 	void Render(Application * pApp, XMMATRIX world, XMMATRIX view, XMMATRIX projection);
 	int getNrOfTriangles() const;
@@ -76,6 +78,10 @@ private:
 	XMMATRIX m_top_down_view;
 	XMMATRIX m_top_down_projection;
 
+	Sphere m_sphere;
+	high_resolution_clock::time_point start_time, current_time;
+
+	//methods
 	bool initShaders(ID3D11Device * pDev, HWND hwnd, WCHAR * vtx_path, WCHAR * px_path);
 	bool initTextures(ID3D11Device * pDev, WCHAR * colorTex, WCHAR * normalTex);
 	bool initRasterizer(ID3D11Device * pDev);

@@ -13,9 +13,11 @@
 #include <chrono>
 
 #define MOVESPEED 0.1f
-#define MOVESPEED_HEIGHTMAP 1.0f;
+#define MOVESPEED_HEIGHTMAP 1.0f
 #define CAMYAWPITCHOFFSET 0.001f
+#define CAMYAWPITCHOFFSET_HEIGHTMAP 0.01f
 #define FRAME_UPDATES_MOVEMENT 60
+#define MOVESPEED_SPHERE 0.05f
 
 using namespace DirectX;
 using namespace std;
@@ -58,6 +60,7 @@ public:
 	
 	void updateCamera(XMMATRIX &view);
 	void detectKeys(int &currentScene);
+	void moveSphere(XMFLOAT3 &center);
 	XMVECTOR getCamPos() const;
 	XMVECTOR getTarget() const;
 	XMVECTOR getTargetToCam() const;

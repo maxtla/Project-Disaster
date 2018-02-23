@@ -248,8 +248,7 @@ void Model::Release()
 		delete[] this->_pVerticesUvNormArr;
 }
 
-XMMATRIX Model::
-getWorld()
+XMMATRIX Model::getWorld()
 {
 	return this->world;
 }

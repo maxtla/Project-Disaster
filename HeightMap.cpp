@@ -12,25 +12,43 @@ HeightMap::~HeightMap()
 {
 }
 
-bool HeightMap::initialize(ID3D11Device * pDev, HWND hwnd, int mapSize, float offset)
+bool HeightMap::initialize(Application *pApp, HWND hwnd, int mapSize, float offset)
 {
 	this->m_mapSize = mapSize;
 	this->m_offset = offset;
 
-	if (!this->initShaders(pDev, hwnd, L"Shaders//heightMapVertex.hlsl", L"Shaders//heightMapPixel.hlsl"))
+	if (!this->initShaders(pApp->pDev, hwnd, L"Shaders//heightMapVertex.hlsl", L"Shaders//heightMapPixel.hlsl"))
 		return false;
 
-	if (!this->initTextures(pDev, L"Assets//cliff_colors.tif", L"Assets//cliff_normals.tif"))
+	if (!this->initTextures(pApp->pDev, L"Assets//cliff_colors.tif", L"Assets//cliff_normals.tif"))
 		return false;
 
-	if (!this->initRasterizer(pDev))
+	if (!this->initRasterizer(pApp->pDev))
 		return false;
 
 	this->generateHeightValues();
-	if (!this->buildHeightMap(pDev))
+	if (!this->buildHeightMap(pApp->pDev))
 		return false;
 
+	if (!this->m_sphere.initialize(pApp->pDev, pApp->inputHandler))
+		return false;
+
+	start_time = high_resolution_clock::now();
+
 	return true;
+}
+
+void HeightMap::update()
+{
+	current_time = high_resolution_clock::now();
+	duration<double, std::milli> delta_time = current_time - start_time;
+	if (delta_time.count() > (1000 / UPDATE_CALL_TIME))
+	{
+		m_sphere.move();
+		m_quadTree.intersectionTestSphere(this->m_sphere);
+		m_sphere.update(this->m_vertices);
+		start_time = high_resolution_clock::now();
+	}
 }
 
 void HeightMap::Release()
@@ -103,6 +121,10 @@ void HeightMap::Render(Application * pApp, XMMATRIX world, XMMATRIX view, XMMATR
 	pApp->pDevCon->RSSetViewports(1, &this->m_Viewport);
 	this->setShaderParameters(pApp->pDevCon, world, view, projection);
 	this->m_quadTree.Render(this->m_viewFrustum, pApp->pDevCon);
+
+	//3rd pass sphere
+	this->setShaderParameters(pApp->pDevCon, m_sphere.getWorld(), view, projection);
+	this->m_sphere.Render(pApp->pDevCon);
 }
 
 int HeightMap::getNrOfTriangles() const

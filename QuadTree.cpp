@@ -50,10 +50,18 @@ void QuadTree::Render(ViewFrustum & viewFrustum, ID3D11DeviceContext * pDevCon)
 	RenderNode(m_parent, viewFrustum, pDevCon);
 }
 
+void QuadTree::intersectionTestSphere(Sphere & sphere)
+{
+	if (m_parent)
+	{
+		this->c_intersectionTestSphere(sphere, m_parent);
+	}
+}
+
 void QuadTree::createTreeNode(NodeTypeQuadTree * node, int xStart, int zStart, int size, ID3D11Device * pDev)
 {
 	int numOfTriangles;
-	vector<unsigned long> indices;
+	vector<int> indices;
 
 	D3D11_BUFFER_DESC indexBufferDesc;
 	D3D11_SUBRESOURCE_DATA indexData;
@@ -125,6 +133,7 @@ void QuadTree::createTreeNode(NodeTypeQuadTree * node, int xStart, int zStart, i
 	}
 
 	node->triangleCount = (int)indices.size() / 3;
+	node->indices = indices;
 	// set up the description of the static index buffer
 	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
 	indexBufferDesc.ByteWidth = sizeof(unsigned long) * (unsigned int)indices.size();
@@ -291,4 +300,18 @@ void QuadTree::calculateNormalTangentBinormal(int v1, int v2, int v3, vector<Ver
 	XMStoreFloat3(&m_vertices[v1].binormal, bitangent);
 	XMStoreFloat3(&m_vertices[v2].binormal, bitangent);
 	XMStoreFloat3(&m_vertices[v3].binormal, bitangent);
+}
+
+void QuadTree::c_intersectionTestSphere(Sphere & sphere, NodeTypeQuadTree * node)
+{
+	if (sphere.intersectBoundingBox(node->cubeCenterVertex, node->radius, node->indices))
+	{
+		//test against the children too
+		for (int i = 0; i < 4; i++)
+		{
+			if (node->nodes[i])
+				c_intersectionTestSphere(sphere, node->nodes[i]);
+		}
+	}
+	return;
 }

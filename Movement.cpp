@@ -132,8 +132,17 @@ void Movement::detectKeys(int &currentScene)
 		{
 			if (currState.x != startState.x || currState.y != startState.y)
 			{
-				camYaw += float(startState.x) * CAMYAWPITCHOFFSET;
-				camPitch += float(startState.y) * CAMYAWPITCHOFFSET;
+				if (currentScene == Scenes::SceneFour)
+				{
+					camYaw += float(startState.x) * CAMYAWPITCHOFFSET_HEIGHTMAP;
+					camPitch += float(startState.y) * CAMYAWPITCHOFFSET_HEIGHTMAP;
+				}
+				else
+				{
+					camYaw += float(startState.x) * CAMYAWPITCHOFFSET;
+					camPitch += float(startState.y) * CAMYAWPITCHOFFSET;
+				}
+				
 				startState = currState;
 			}
 		}
@@ -143,6 +152,19 @@ void Movement::detectKeys(int &currentScene)
 	
 
 	return;
+}
+
+void Movement::moveSphere(XMFLOAT3 & center)
+{
+	auto kb = mKeyboard->GetState();
+	if (kb.Up)
+		center.z += MOVESPEED_SPHERE;
+	if (kb.Down)
+		center.z -= MOVESPEED_SPHERE;
+	if (kb.Left)
+		center.x -= MOVESPEED_SPHERE;
+	if (kb.Right)
+		center.x += MOVESPEED_SPHERE;
 }
 
 XMVECTOR Movement::getCamPos() const
