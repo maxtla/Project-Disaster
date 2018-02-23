@@ -17,7 +17,7 @@ bool SceneHeightMap::initScene(Application * pApp, HINSTANCE hInstance, HWND hwn
 	if (m_heightMap == nullptr)
 	{
 		this->m_heightMap = new HeightMap();
-		if (!this->m_heightMap->initialize(pApp, hwnd, (int)pow(2, 9) + 1, 0.5f))
+		if (!this->m_heightMap->initialize(pApp, hwnd, (int)pow(2, 7) + 1, 0.3f))
 			return false;
 	}
 	return true;
@@ -45,6 +45,7 @@ void SceneHeightMap::renderScene(Application * pApp)
 	//text output
 	pApp->textToScreen(L"Scene 4", XMFLOAT2(50.f, 50.f), XMFLOAT2(0.5f, 0.5f));
 	pApp->textToScreen(L"Triangles: " + to_wstring(m_heightMap->getNrOfTriangles()), XMFLOAT2(50.f, 100.f), XMFLOAT2(0.45f, 0.45f));
+	pApp->textToScreen(L"(Y) Toggle follow", XMFLOAT2(50.f, 130.f), XMFLOAT2(0.4f, 0.4f));
 	pApp->camInfoToScreen(XMFLOAT2(50.f, 600.f), XMFLOAT2(0.4f, 0.4f));
 
 	//present the final frame

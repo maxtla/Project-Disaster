@@ -24,6 +24,8 @@ void Movement::initialize(HWND hwnd)
 	this->startState = mMouse->GetState();
 	this->start_clock_movement = high_resolution_clock::now();
 	this->rotation_clock_start = high_resolution_clock::now();
+
+	followSphere = false;
 }
 
 void Movement::updateCamera(XMMATRIX &view)
@@ -165,6 +167,29 @@ void Movement::moveSphere(XMFLOAT3 & center)
 		center.x -= MOVESPEED_SPHERE;
 	if (kb.Right)
 		center.x += MOVESPEED_SPHERE;
+	if (kb.Y)
+	{
+		if (!followSphere)
+		{
+			followSphere = true;
+			previousCamPos = camPosition;
+			camPosition = XMLoadFloat3(&center);
+		}
+		else if (followSphere)
+		{
+			followSphere = false;
+			camPosition = previousCamPos;
+		}
+	}
+
+	if (followSphere)
+	{
+		XMFLOAT3 pos = center;
+		pos.x -= 0.0f;
+		pos.y += 4.5f;
+		pos.z -= 3.0f;
+		camPosition = XMLoadFloat3(&pos);
+	}
 }
 
 XMVECTOR Movement::getCamPos() const
