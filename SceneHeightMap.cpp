@@ -17,7 +17,7 @@ bool SceneHeightMap::initScene(Application * pApp, HINSTANCE hInstance, HWND hwn
 	if (m_heightMap == nullptr)
 	{
 		this->m_heightMap = new HeightMap();
-		if (!this->m_heightMap->initialize(pApp->pDev, hwnd, (int)pow(2, 9) + 1, 0.5f))
+		if (!this->m_heightMap->initialize(pApp, hwnd, (int)pow(2, 9) + 1, 0.5f))
 			return false;
 	}
 	return true;
@@ -25,7 +25,7 @@ bool SceneHeightMap::initScene(Application * pApp, HINSTANCE hInstance, HWND hwn
 
 void SceneHeightMap::updateScene()
 {
-	
+	this->m_heightMap->update();
 }
 
 void SceneHeightMap::renderScene(Application * pApp)
