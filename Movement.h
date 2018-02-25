@@ -17,7 +17,7 @@
 #define CAMYAWPITCHOFFSET 0.001f
 #define CAMYAWPITCHOFFSET_HEIGHTMAP 0.01f
 #define FRAME_UPDATES_MOVEMENT 60
-#define MOVESPEED_SPHERE 0.05f
+#define MOVESPEED_SPHERE 0.5f
 
 using namespace DirectX;
 using namespace std;
@@ -51,12 +51,13 @@ private:
 	Mouse::State startState;
 	high_resolution_clock::time_point start_clock_movement, current_clock_movement;
 	high_resolution_clock::time_point rotation_clock_start, rotation_clock_current;
-
+	bool followSphere;
 	
 public:
 	Movement();
 	~Movement();
 	void initialize(HWND hwnd);
+	XMVECTOR previousCamPos;
 	
 	void updateCamera(XMMATRIX &view);
 	void detectKeys(int &currentScene);
