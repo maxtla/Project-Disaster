@@ -1,8 +1,9 @@
 cbuffer EXAMPLE_BUFFER : register(b0)
 {
-	float4x4 world;
+	float4x4 worldPos;
 	float4x4 view;
 	float4x4 proj;
+	float3 cameraPos;
 }
 
 struct GS_OUT
@@ -17,10 +18,10 @@ struct VS_OUT
 	float2 Tex : TEXCOORD;
 };
 
-[maxvertexcount(3)]
+[maxvertexcount(4)]
 void bill_gs_main(triangle VS_OUT input[3], inout TriangleStream<GS_OUT> OutputStream)
 {
-	GS_OUT output[3];
+	/*GS_OUT output[3];
 	float3 m_e1 = float3(input[1].Pos.x - input[0].Pos.x,
 						input[1].Pos.y - input[0].Pos.y
 						input[1].Pos.z - input[0].Pos.z);
@@ -37,5 +38,21 @@ void bill_gs_main(triangle VS_OUT input[3], inout TriangleStream<GS_OUT> OutputS
 		output[i].Normal = mul(float4(m_normal, 0), world).xyz;
 		output[i].Tex = input[i].Tex;
 		outputStream.append(output[i]);
-	}
+	}*/
+	float halfWidth = snowWidth / 2.0f;
+
+	float3 planeNormal = input[0].world - cameraPos;
+	planeNormal.y = 0.0f;
+	planeNormal = normalize(planeNormal);
+	float3 upVector = float3(0.0f, 1.0f, 0.0f);
+	float3 rightVector = normalize(cross(planeNormal, upVector));
+
+	rightVector = rightVector * halfWidth;
+
+	upVector = float3(0, halfSnowHeight, 0);
+
+	float3 vert[4];
+
+	vert[0] = input[0].world - rightVector;
+
 }

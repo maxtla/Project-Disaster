@@ -1,21 +1,25 @@
 
 struct VS_IN
 {
-	float3 Pos : POSITION;
-	float2 Tex : TEXCOORD;
+	float3 pos : POSITION;
+	float2 tex : TEXCOORD;
+	float3 normal : NORMAL;
 };
 
 struct VS_OUT
 {
-	float4 Pos : SV_POSITION;
-	float2 Tex : TEXCOORD;
+	float4 pos : SV_POSITION;
+	float2 tex : TEXCOORD;
+	float4 normal : NORMAL;
+
 };
 VS_OUT bill_vs_main(VS_IN input)
 {
-	VS_OUT output = (VS_OUT)0;
+	VS_OUT output;
 
-	output.Pos = float4(input.Pos, 1);
-	output.Tex = input.Tex;
+	output.pos = float4(input.pos, 1.0);
+	output.tex = input.tex;
+	
 
 	return output;
 }
