@@ -46,7 +46,7 @@ bool Billboarding::setShaderParameters(ID3D11DeviceContext * pDevCon, XMMATRIX w
 
 	//get data point of the constant buffer
 	dataPtr = (MatrixBufferStruct*)mappedSubresource.pData;
-	dataPtr->worldPos = world;
+	dataPtr->world = world;
 	dataPtr->view = view;
 	dataPtr->projection = proj;
 
@@ -96,7 +96,7 @@ Billboarding::~Billboarding()
 {
 }
 
-bool Billboarding::initializeShader(ID3D11Device * pDev, HWND hwnd, WCHAR* geometryFile, WCHAR* fragmentFile, WCHAR* vertexFile)
+bool Billboarding::initializeShader(ID3D11Device * pDev, HWND hwnd, WCHAR* fragmentFile, WCHAR* vertexFile)
 {
 	HRESULT hr;
 	ID3D10Blob* errorMsg = NULL;
@@ -109,23 +109,7 @@ bool Billboarding::initializeShader(ID3D11Device * pDev, HWND hwnd, WCHAR* geome
 	D3D11_BUFFER_DESC matrixBufferDesc, geometryBufferDesc;
 
 	//TO DO måste skriva en PS och GS......
-	hr = D3DCompileFromFile(geometryFile, 
-		nullptr, nullptr, 
-		"bill_gs_main", 
-		"gs_5_0", 
-		D3D10_SHADER_ENABLE_STRICTNESS,
-		0, 
-		&geometryShaderBuffer, 
-		&errorMsg);
 
-	if (FAILED(hr))
-	{
-		if (errorMsg)
-		{
-			this->outputErrorMessage(errorMsg, hwnd, geometryFile);
-		}
-		return false;
-	}
 
 	hr = D3DCompileFromFile(fragmentFile,
 		nullptr, nullptr,
@@ -167,16 +151,12 @@ bool Billboarding::initializeShader(ID3D11Device * pDev, HWND hwnd, WCHAR* geome
 	if (FAILED(hr))
 		return false;
 
-	hr = pDev->CreateGeometryShader(geometryShaderBuffer->GetBufferPointer(), geometryShaderBuffer->GetBufferSize(), NULL, &this->_pGeometryShader);
-	if (FAILED(hr))
-		return false;
-
 	hr = pDev->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, &this->_pPixelShader);
 	//TO DO... Fortsätta implementera allt detta
 
-	hr = pDev->CreateBuffer(&geometryBufferDesc, NULL, &this->_pGeometryBuffer);
+	/*hr = pDev->CreateBuffer(&geometryBufferDesc, NULL, &this->_pGeometryBuffer);
 	if (FAILED(hr))
-		return false;
+		return false;*/
 
 	layoutDescriptions[0].SemanticName = "POSITION";
 	layoutDescriptions[0].SemanticIndex = 0;
@@ -263,10 +243,10 @@ bool Billboarding::initialize(ID3D11Device * pDev, HWND hwnd)
 {
 	bool result;
 
-	result = this->initializeShader(pDev, hwnd, L"Shaders//BillGeometryShader", L"Shaders//BillPixelShader", L"Shaders//BillVertexShader");
+	result = this->initializeShader(pDev, hwnd, L"Shaders//BillPixelShader.hlsl", L"Shaders//BillVertexShader.hlsl");
 	if (!result)
-		return result;
-	return result;
+		return false;
+	return true;
 }
 
 void Billboarding::Release()
@@ -296,6 +276,10 @@ void Billboarding::Release()
 		this->_pVertexShader->Release();
 		this->_pVertexShader = NULL;
 	}
+}
+
+void Billboarding::createTriangleData()
+{
 }
 
 bool Billboarding::render(ID3D11DeviceContext * pDevCon, int index, XMMATRIX world, XMMATRIX view, XMMATRIX proj, ID3D11ShaderResourceView * pTexture, ID3D11SamplerState * texSampler, XMVECTOR camPos)

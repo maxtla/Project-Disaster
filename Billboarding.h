@@ -7,20 +7,16 @@
 #include <DirectXMath.h>
 #include "WICTextureLoader.h"
 #include<fstream>
-#include"HeightMap.h"
+
+using namespace DirectX;
+using namespace std;
 
 class Billboarding
 {
 private:
-	struct VertexQuad
-	{
-		float x, y, z;
-		float u, v;
-	};
-
 	struct MatrixBufferStruct
 	{
-		XMMATRIX worldPos;
+		XMMATRIX world;
 		XMMATRIX view;
 		XMMATRIX projection;
 	};
@@ -37,7 +33,7 @@ private:
 	ID3D11Buffer* _pMatrixBuffer;
 	ID3D11Buffer* _pGeometryBuffer;
 
-	bool initializeShader(ID3D11Device * pDev, HWND hwnd, WCHAR* geometryFile, WCHAR* fragmentFile, WCHAR* vertexFile);
+	bool initializeShader(ID3D11Device * pDev, HWND hwnd, WCHAR* fragmentFile, WCHAR* vertexFile);
 	void outputErrorMessage(ID3D10Blob* blob, HWND hwnd, WCHAR* file);
 	bool setShaderParameters(ID3D11DeviceContext* pDevCon, XMMATRIX world, XMMATRIX view, XMMATRIX proj, ID3D11ShaderResourceView* pTexture, XMVECTOR camPos);
 	void renderShader(ID3D11DeviceContext* pDevCon, int iCount, ID3D11SamplerState* texSampler);
@@ -45,7 +41,6 @@ private:
 public:
 	Billboarding();
 	~Billboarding();
-
 	bool initialize(ID3D11Device* pDev, HWND hwnd);
 	void Release();
 	void createTriangleData();

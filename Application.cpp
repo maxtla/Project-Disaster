@@ -19,6 +19,8 @@ Application::Application()
 	this->pSceneDefRender = nullptr;
 	this->pSceneNormalMap = nullptr;
 	this->pSceneShadowMap = nullptr;
+	this->pSceneHeightMap = nullptr;
+	this->pSceneBillboarding = nullptr;
 }
 
 
@@ -147,7 +149,7 @@ bool Application::initApplication(HINSTANCE hInstance, HWND hwnd)
 	rasterDesc.DepthBiasClamp = 0.0f;
 	rasterDesc.DepthClipEnable = true;
 	rasterDesc.FillMode = D3D11_FILL_SOLID;
-	rasterDesc.FrontCounterClockwise = true;
+	rasterDesc.FrontCounterClockwise = false;
 	rasterDesc.MultisampleEnable = true;
 	rasterDesc.ScissorEnable = false;
 	rasterDesc.SlopeScaledDepthBias = 0.0f;
@@ -155,8 +157,23 @@ bool Application::initApplication(HINSTANCE hInstance, HWND hwnd)
 	hr = pDev->CreateRasterizerState(&rasterDesc, &pRasterState);
 	if (FAILED(hr))
 		return false;
-	//set rasterizer state
-	pDevCon->RSSetState(pRasterState);
+
+	ZeroMemory(&rasterDesc, sizeof(D3D11_RASTERIZER_DESC));
+	// Setup the raster description for no culling
+	rasterDesc.AntialiasedLineEnable = true;
+	rasterDesc.CullMode = D3D11_CULL_NONE;
+	rasterDesc.DepthBias = 0;
+	rasterDesc.DepthBiasClamp = 0.0f;
+	rasterDesc.DepthClipEnable = true;
+	rasterDesc.FillMode = D3D11_FILL_SOLID;
+	rasterDesc.FrontCounterClockwise = false;
+	rasterDesc.MultisampleEnable = true;
+	rasterDesc.ScissorEnable = false;
+	rasterDesc.SlopeScaledDepthBias = 0.0f;
+	//create rasterizer state
+	hr = pDev->CreateRasterizerState(&rasterDesc, &pRasterStateNoCulling);
+	if (FAILED(hr))
+		return false;
 
 	// Setup the viewport for rendering.
 	_viewPort.Width = (float)WIDTH;
@@ -194,11 +211,14 @@ bool Application::initApplication(HINSTANCE hInstance, HWND hwnd)
 		return false;
 
 	this->view = XMMatrixLookAtLH(XMVectorSet(0.0f, 0.0f, -3.0f, 1.0f), XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
-	this->projection = XMMatrixPerspectiveFovLH(XM_PI * 0.45f, ((float)WIDTH) / HEIGHT, 0.01f, 20.0f);
+	this->projection = XMMatrixPerspectiveFovLH(XM_PI * 0.45f, ((float)WIDTH) / HEIGHT, SCREEN_NEAR, SCREEN_DEPTH);
 
 	this->inputHandler = new Movement();
 	this->inputHandler->initialize(hwnd);
-	this->start_time = clock();
+
+	m_font = std::make_unique<SpriteFont>(pDev, L"myfile.spritefont");
+	m_spriteBatch = std::make_unique<SpriteBatch>(pDevCon);
+	m_fontPos = XMFLOAT2(350.f, 50.f);
 
 	return true;
 }
@@ -223,6 +243,18 @@ bool Application::initScenes(HINSTANCE hInstance, HWND hwnd)
 	if (!this->pSceneShadowMap->initScene(this, hInstance, hwnd))
 		return false;
 
+	if (pSceneHeightMap == nullptr)
+		pSceneHeightMap = new SceneHeightMap();
+
+	if (!this->pSceneHeightMap->initScene(this, hInstance, hwnd))
+		return false;
+
+	if (pSceneBillboarding == nullptr)
+		pSceneBillboarding = new SceneBillboarding();
+
+	if (!this->pSceneBillboarding->initScene(this, hInstance, hwnd))
+		return false;
+
 	this->currentScene = Scenes::SceneOne;
 
 	return true;
@@ -235,13 +267,8 @@ void Application::handleInput()
 
 void Application::update()
 {
-	//check for inputs
-	clock_t current_time = clock();
-	float time = float(difftime(current_time, start_time) / 1000);
-	start_time = current_time;
-
-	//TO DO se till att det kommer en timer så att det inte blir olika camera speed mellan scener
-	this->inputHandler->detectKeys(currentScene);
+	
+	this->inputHandler->detectKeys(this->currentScene);
 	
 
 	switch (this->currentScene)
@@ -254,6 +281,12 @@ void Application::update()
 		break;
 	case Scenes::SceneThree:
 		this->pSceneShadowMap->updateScene();
+		break;
+	case Scenes::SceneFour:
+		this->pSceneHeightMap->updateScene();
+		break;
+	case Scenes::SceneFive:
+		this->pSceneBillboarding->updateScene();
 		break;
 	default:
 		break;
@@ -274,6 +307,12 @@ void Application::render()
 		break;
 	case Scenes::SceneThree:
 		this->pSceneShadowMap->renderScene(this);
+		break;
+	case Scenes::SceneFour:
+		this->pSceneHeightMap->renderScene(this);
+		break;
+	case Scenes::SceneFive:
+		this->pSceneBillboarding->renderScene(this);
 		break;
 	default:
 		break;
@@ -307,17 +346,28 @@ void Application::Release()
 		this->pSceneNormalMap->Release();
 	if (this->pSceneShadowMap)
 		this->pSceneShadowMap->Release();
+	if (this->pSceneBillboarding)
+		this->pSceneBillboarding->Release();
 }
 
-void Application::switchScene()
+
+void Application::textToScreen(wstring text, XMFLOAT2 position, XMFLOAT2 scaling)
 {
-	this->currentScene = (this->currentScene + 1) % NUMOFSCENES;
-	if (this->currentScene == 2)
-	{
-		this->view = XMMatrixLookAtLH(XMVectorSet(0.0f, 0.3f, -2.0f, 1.0f), XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
-	}
-	else
-	{
-		this->view = XMMatrixLookAtLH(XMVectorSet(0.0f, 0.0f, -3.0f, 1.0f), XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 1.0f));
-	}
+	m_spriteBatch->Begin();
+	m_font->DrawString(m_spriteBatch.get(), text.c_str(), XMLoadFloat2(&position), Colors::White, 0.f, g_XMZero, XMLoadFloat2(&scaling));
+	m_spriteBatch->End();
+}
+
+void Application::camInfoToScreen(XMFLOAT2 position, XMFLOAT2 scaling)
+{
+	//prepare the wstrings for output
+	XMFLOAT3 pos, target;
+	XMStoreFloat3(&pos, this->inputHandler->getCamPos());
+	XMStoreFloat3(&target, this->inputHandler->getTarget());
+
+	wstring ws_pos = L"Camera position: X: " + to_wstring(pos.x) + L" Y: " + to_wstring(pos.y) + L" Z: " + to_wstring(pos.z);
+	wstring ws_target = L"Target position: X: " + to_wstring(target.x) + L" Y: " + to_wstring(target.y) + L" Z: " + to_wstring(target.z);
+
+	textToScreen(ws_pos, position, scaling);
+	textToScreen(ws_target, XMFLOAT2(position.x, position.y + 35.f), scaling);
 }

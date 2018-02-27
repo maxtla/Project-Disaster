@@ -1,4 +1,11 @@
 
+cbuffer Matrices : register(b0) 
+{
+	matrix world;
+	matrix view;
+	matrix proj;
+};
+
 struct VS_IN
 {
 	float3 pos : POSITION;
@@ -17,9 +24,13 @@ VS_OUT bill_vs_main(VS_IN input)
 {
 	VS_OUT output;
 
-	output.pos = float4(input.pos, 1.0);
+	//output.pos.w = 1.0f;
+
+	output.pos = mul(input.pos, world);
+	output.pos = mul(input.pos, view);
+	output.pos = mul(input.pos, proj);
+
 	output.tex = input.tex;
-	
 
 	return output;
 }
