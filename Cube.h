@@ -30,7 +30,7 @@ public:
 	bool getBoxHit() const;
 	UINT32 getStride() const;
 	bool intersectBoundingBox(DirectX::XMVECTOR origin, DirectX::XMVECTOR dir);
-	void update(Application* pApp, ID3D11Buffer* &vertexBuffer, bool boxGotHit);
+	void update(Application* pApp, ID3D11Buffer* &vertexBuffer, bool boxGotHit, int boxId = 0);
 	void Render(ID3D11DeviceContext* pDevCon);
 
 };

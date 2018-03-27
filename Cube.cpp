@@ -20,7 +20,7 @@ bool Cube::initialize(Application* pApp, ID3D11Buffer** cubeBuffer, int nrOfBoxe
 
 	for (int i = 0; i < nrOfBoxes; i++)
 	{
-		this->m_boxes.push_back(DirectX::BoundingBox(DirectX::XMFLOAT3(float(i * 0), float(i * 0), float(i * 4)), DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f)));
+		this->m_boxes.push_back(DirectX::BoundingBox(DirectX::XMFLOAT3(float(i * 1), float(i * 1), float(i * 4)), DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f)));
 		this->m_boxes[i].GetCorners(corners);
 
 		this->m_boxVertices[i * 24 + 0].position = corners[0];
@@ -76,7 +76,7 @@ bool Cube::initialize(Application* pApp, ID3D11Buffer** cubeBuffer, int nrOfBoxe
 void Cube::Release()
 {
 	this->m_boxes.clear();
-	delete this->m_boxVertices;
+	delete[] this->m_boxVertices;
 }
 
 int Cube::getHitBoxId() const
@@ -98,48 +98,35 @@ UINT32 Cube::getStride() const
 bool Cube::intersectBoundingBox(DirectX::XMVECTOR origin, DirectX::XMVECTOR dir)
 {
 	float intersectionDistance;
-	std::vector<float> intersectionValues;
-	std::vector<int> boxId;
+	float t = FLT_MAX;
+	bool toReturn = false;
 
 	for (int i = 0; i < this->m_boxes.size(); i++)
 	{
 		if (this->m_boxes[i].Intersects(origin, dir, intersectionDistance))
 		{
-			intersectionValues.push_back(intersectionDistance);
-			boxId.push_back(i);
-		}
-	}
-
-	if (!intersectionValues.empty())
-	{
-		float closestBox = intersectionValues[0];
-		int boxIdIndex = 0;
-
-		for (int i = 1; i < intersectionValues.size(); i++)
-		{
-			if (closestBox > intersectionValues[i])
+			if (intersectionDistance < t)
 			{
-				closestBox = intersectionValues[i];
-				boxIdIndex = i;
+				t = intersectionDistance;
+				this->hitBoxId = i;
 			}
+			if (!toReturn)
+				toReturn = true;
 		}
-
-		this->hitBoxId = boxIdIndex;
-		this->boxHit = true;
-
-		return true;
 	}
 
-	return false;
+	this->boxHit = toReturn;
+
+	return toReturn;
 }
 
-void Cube::update(Application* pApp, ID3D11Buffer* &vertexBuffer, bool boxGotHit)
+void Cube::update(Application* pApp, ID3D11Buffer* &vertexBuffer, bool boxGotHit, int boxId)
 {
 	if (boxGotHit)
 	{
 		// 24 lines
 		for (int i = 0; i < 24; i++)
-			this->m_boxVertices[i].color = DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
+			this->m_boxVertices[(this->hitBoxId * 24) + i].color = DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
 
 		D3D11_BUFFER_DESC bufferDesc;
 		vertexBuffer->GetDesc(&bufferDesc);
@@ -153,7 +140,7 @@ void Cube::update(Application* pApp, ID3D11Buffer* &vertexBuffer, bool boxGotHit
 	else
 	{
 		for (int i = 0; i < 24; i++)
-			this->m_boxVertices[i].color = DirectX::XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f);
+			this->m_boxVertices[(boxId * 24) + i].color = DirectX::XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f);
 
 		vertexBuffer->Release();
 

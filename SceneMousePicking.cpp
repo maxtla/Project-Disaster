@@ -34,18 +34,28 @@ void SceneMousePicking::updateScene(Application* pApp)
 		pApp->inputHandler->setShootRay(false);
 	}
 
-	int lockedBoxId = this->m_cubes->getHitBoxId();
+	int hitBoxId = this->m_cubes->getHitBoxId();
 	bool isBoxHit = this->m_cubes->getBoxHit();
-	this->current_time = high_resolution_clock::now();
-	duration<double, std::milli> delta_time = this->current_time - this->start_time;
+	
 	if (isBoxHit)
 	{
+		Timers newTimer;
+		newTimer.index = hitBoxId;
+		
 		this->m_cubes->update(pApp, this->m_mousePickingShader->getVertexBuffer(), isBoxHit);
-		this->start_time = high_resolution_clock::now();
+
+		newTimer.start_time = high_resolution_clock::now();
+		this->tracker.push_back(newTimer);
 	}
-	else if (!isBoxHit && delta_time.count() > 1000.0)
+	this->current_time = high_resolution_clock::now();
+	for (int i = 0; i < this->tracker.size(); i++)
 	{
-		this->m_cubes->update(pApp, this->m_mousePickingShader->getVertexBuffer(), isBoxHit);
+		duration<double, std::milli> delta_time = this->current_time - tracker[i].start_time;
+		if (delta_time.count() > 1000.0)
+		{
+			this->m_cubes->update(pApp, this->m_mousePickingShader->getVertexBuffer(), false, this->tracker[i].index);
+			this->tracker.erase(this->tracker.begin() + i);
+		}
 	}
 }
 
@@ -74,6 +84,5 @@ void SceneMousePicking::Release()
 	this->m_mousePickingShader = nullptr;
 
 	this->m_cubes->Release();
-	delete this->m_cubes;
 	this->m_cubes = nullptr;
 }
